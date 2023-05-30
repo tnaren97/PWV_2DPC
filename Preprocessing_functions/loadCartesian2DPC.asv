@@ -1,10 +1,9 @@
-function data = loadCartesian2DPC(varargin)
+function loadCartesian2DPC(varargin)
 
 if isempty(varargin)
-    cart_folder = pwd;
+    cart_folder = uigetdir();
 else 
-    cart_folder = varargin{1};
-end
+    cart_folder = v
 cd(cart_folder)
 
 dirinfo = [dir('*.dcm'); dir('*.dicom'); dir('*.sdcopen')];
@@ -40,8 +39,5 @@ temporalRes = header.NominalInterval/header.CardiacNumberOfImages;
 disp(['Spatial Resolution = ' num2str(spatialRes) ' mm']);
 disp(['Temporal Resolution = ' num2str(temporalRes) ' ms']);
 clear dirinfo file header xVector yVector zVector
-
-data.vz = vz;
-data.mag = mag;
 
 end

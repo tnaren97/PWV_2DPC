@@ -1,5 +1,12 @@
+function data = loadRadial2DPC(varargin)
 %% Check Reconstructed Image
-directory = pwd;
+if isempty(varargin)
+    directory = pwd;
+else
+    directory = varargin{1};
+end
+cd(directory)
+
 fid = fopen([directory '\pcvipr_header.txt'], 'r');
 dataArray = textscan(fid, '%s%s%[^\n\r]', 'Delimiter', ' ', 'MultipleDelimsAsOne', true, 'ReturnOnError', false);
 fclose(fid); clear ans;
@@ -20,19 +27,19 @@ VZ = load_dat(fullfile(directory,'comp_vd_3.dat'),[resx resy]);
 
 vz  = zeros(resx,resy,nframes);
 mag = zeros(resx,resy,nframes);
-cd  = zeros(resx,resy,nframes);
+compd  = zeros(resx,resy,nframes);
 for j = 1:nframes   
     vx(:,:,j) = load_dat(fullfile(directory, ['\ph_' num2str(j-1,'%03i') '_vd_1.dat']),[resx resy]);
     vy(:,:,j) = load_dat(fullfile(directory, ['\ph_' num2str(j-1,'%03i') '_vd_2.dat']),[resx resy]);
     vz(:,:,j) = load_dat(fullfile(directory, ['\ph_' num2str(j-1,'%03i') '_vd_3.dat']),[resx resy]);
     mag(:,:,j) = load_dat(fullfile(directory, ['\ph_' num2str(j-1,'%03i') '_mag.dat']),[resx resy]);
-    cd(:,:,j) = load_dat(fullfile(directory, ['\ph_' num2str(j-1,'%03i') '_cd.dat']),[resx resy]);
+    compd(:,:,j) = load_dat(fullfile(directory, ['\ph_' num2str(j-1,'%03i') '_cd.dat']),[resx resy]);
 end
 MAG = flipud(MAG);
 CD = flipud(CD);
 VMEAN = flipud(VZ);
 mag = flipud(mag);
-cd = flipud(cd);
+compd = flipud(compd);
 vz = flipud(squeeze(vz));
 
 % sx = pcviprHeader.sx;
@@ -53,7 +60,8 @@ vz = flipud(squeeze(vz));
 % yVector = round([jx;jy;jz;0],8); % what direction the cols run w/r/to y
 % zVector = round([kx;ky;kz;0],8); % what direction the cols run w/r/to y
 % rotation = [xVector yVector zVector originShift];
-figure; imshow3D(vz); 
+z = figure; imshow3D(vz); 
+movegui(z, "north")
 
 
 %% Check Respiratory Binning
@@ -76,16 +84,20 @@ EXP = (abs(weight-1)).*RESP;
 EXP(EXP==0) = NaN;
 pctDataUsed = sum(weight)/last*100;
 
-figure; plot(time(1:last),RESP(1:last),'Color',[0.4940 0.1840 0.5560],'LineWidth',1.8); ...
+q = figure; plot(time(1:last),RESP(1:last),'Color',[0.4940 0.1840 0.5560],'LineWidth',1.8); ...
     hold on; plot(time(1:last),EXP(1:last),'Color',[0.9290 0.6940 0.1250],'LineWidth',1.8); ...
     hold on; plot(time(1:last),INSP(1:last),'Color',[0.4940 0.1840 0.5560],'LineWidth',1.8);
 xlabel('Time (s)');
 ylabel('Respiratory Amplitude (a.u.)');
 title('Respiratory Waveform');
 clear time* resp weight last EXP INSP RESP j fid dataArray
+movegui(q, "west")
 
 
 %% Command Window Output
 disp(['Spatial Resolution = ' num2str(spatialRes) ' mm']);
 disp(['Temporal Resolution = ' num2str(temporalRes) ' ms']);
 disp(['Percent Data Used with Resp. Gating = ' num2str(round(pctDataUsed)) '%']);
+
+data.mag = mag;
+data.vz = vz;

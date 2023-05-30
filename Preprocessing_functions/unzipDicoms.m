@@ -22,8 +22,13 @@
 %     cd('../..') %move back to list of all patients
 % end 
 
+function unzipDicoms(varargin)
 
-unzipDir = uigetdir();
+if isempty(varargin)
+    unzipDir = uigetdir();
+else
+    unzipDir = varargin{1};
+end
 cd(unzipDir)
 dicomDir = dir(unzipDir); %get list of all life patient directories
 
@@ -39,5 +44,7 @@ dicomDir = dir(unzipDir); %get list of all life patient directories
             cd('..') %move up a directory
             rmdir('Dicoms','s') %get rid of created dummy unzipping folder
         end 
-        cd('..') %move back up to directory with all dicoms
+        cd(unzipDir) %move back up to directory with all dicoms
     end 
+
+end
