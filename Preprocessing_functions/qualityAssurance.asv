@@ -2,13 +2,11 @@ life_folder = uigetdir();
 cd(life_folder)
 lifeDir = dir(life_folder);
 
-disp("~~~~~~~~~~~~~~~~~~~ Cartesian Quality Assurance ~~~~~~~~~~~~~~~~~~~")
-
-
 dcm_folder = fullfile(life_folder, 'dicoms');
 unzipDicoms(dcm_folder)
 
-disp('---------- Ascending Aorta (Cartesian) ----------')
+disp('~~~~~~~~~~~~~~~~~~~ Ascending Aorta (Cartesian) ~~~~~~~~~~~~~~~~~~~')
+disp("Loading...")
 [cart_asc_exist, cart_asc] = checkExistence(dcm_folder, '*PWV_CartBH_AAo');
 if cart_asc_exist == 1
     copyfile(fullfile(dcm_folder, cart_asc), fullfile(life_folder, cart_asc))
@@ -24,7 +22,8 @@ if cart_asc_exist == 1
 end
 
 
-disp('---------- Ascending Aorta (Abdominal) ----------')
+disp('~~~~~~~~~~~~~~~~~~~ Abdominal Aorta (Cartesian) ~~~~~~~~~~~~~~~~~~~')
+disp("Loading...")
 [cart_abd_exist, cart_abd] = checkExistence(dcm_folder, '*PWV_CartBH_AbdAo');
 if cart_abd_exist == 1
     copyfile(fullfile(dcm_folder, cart_abd), fullfile(life_folder, cart_abd))
@@ -39,9 +38,7 @@ if cart_abd_exist == 1
     cd(life_folder)
 end
 
-disp("~~~~~~~~~~~~~~~~~~~ Radial Quality Assurance ~~~~~~~~~~~~~~~~~~~")
-
-disp('---------- Ascending Aorta (Radial) ----------')
+disp('~~~~~~~~~~~~~~~~~~~ Ascending Aorta (Radial) ~~~~~~~~~~~~~~~~~~~')
 [rad_asc_exist, rad_asc] = checkExistence(life_folder, '*radial_AAo');
 if rad_asc_exist == 1
     cd(rad_asc)
@@ -51,20 +48,21 @@ if rad_asc_exist == 1
     disp("Press enter in command window when ready to move on")
     pause
     close all
-    [standard_asc_exist, standard_asc] = checkExistence(fullfile(life_folder, rad_asc), '*standard*/dat');
-    if standard_abd_exist
-        rad_asc_data = loadRadial2DPC(fullfile(life_folder, rad_asc, '*standard*/dat'));
-        g = figure; imshow3D(rad_asc_data.vz)
-        movegui(g, "north")
+    [standard_asc_exist, standard_asc] = checkExistence(fullfile(life_folder, rad_asc), '*standard*');
+    if standard_asc_exist
+        rad_asc_data = loadRadial2DPC(fullfile(life_folder, rad_asc, standard_asc, 'dat'));
+%         g = figure; imshow3D(rad_asc_data.vz)
+%         movegui(g, "north")
         h = figure; imshow3D(rad_asc_data.mag)
         movegui(h, "south")
         disp("Press enter in command window when ready to move on")
         pause
         close all
+    end
     cd(life_folder)
 end
 
-disp('---------- Abdominal Aorta (Radial) ----------')
+disp('~~~~~~~~~~~~~~~~~~~ Abdominal Aorta (Radial) ~~~~~~~~~~~~~~~~~~~')
 [rad_abd_exist, rad_abd] = checkExistence(life_folder, '*radial_AbdAo');
 if rad_abd_exist == 1
     cd(rad_abd)
@@ -74,11 +72,11 @@ if rad_abd_exist == 1
     disp("Press enter in command window when ready to move on")
     pause
     close all
-    [standard_abd_exist, standard_abd] = checkExistence(fullfile(life_folder, rad_abd), '*standard*/dat');
+    [standard_abd_exist, standard_abd] = checkExistence(fullfile(life_folder, rad_abd), '*standard*');
     if standard_abd_exist
         rad_abd_data = loadRadial2DPC(fullfile(life_folder, rad_abd, standard_abd, 'dat'));
-        g = figure; imshow3D(rad_abd_data.vz)
-        movegui(g, "north")
+%         g = figure; imshow3D(rad_abd_data.vz)
+%         movegui(g, "north")
         h = figure; imshow3D(rad_abd_data.mag)
         movegui(h, "south")
         disp("Press enter in command window when ready to move on")
@@ -88,6 +86,7 @@ if rad_abd_exist == 1
     cd(life_folder)
 end
 close all; clear;
+disp("Quality assurance complete!")
 
 function [value, name] = checkExistence(folder, search_pattern)
     check = dir([folder,'\',search_pattern]);

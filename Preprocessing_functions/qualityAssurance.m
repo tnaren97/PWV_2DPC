@@ -6,6 +6,7 @@ dcm_folder = fullfile(life_folder, 'dicoms');
 unzipDicoms(dcm_folder)
 
 disp('~~~~~~~~~~~~~~~~~~~ Ascending Aorta (Cartesian) ~~~~~~~~~~~~~~~~~~~')
+disp("Loading...")
 [cart_asc_exist, cart_asc] = checkExistence(dcm_folder, '*PWV_CartBH_AAo');
 if cart_asc_exist == 1
     copyfile(fullfile(dcm_folder, cart_asc), fullfile(life_folder, cart_asc))
@@ -22,6 +23,7 @@ end
 
 
 disp('~~~~~~~~~~~~~~~~~~~ Abdominal Aorta (Cartesian) ~~~~~~~~~~~~~~~~~~~')
+disp("Loading...")
 [cart_abd_exist, cart_abd] = checkExistence(dcm_folder, '*PWV_CartBH_AbdAo');
 if cart_abd_exist == 1
     copyfile(fullfile(dcm_folder, cart_abd), fullfile(life_folder, cart_abd))
@@ -84,6 +86,7 @@ if rad_abd_exist == 1
     cd(life_folder)
 end
 close all; clear;
+disp("Quality assurance complete!")
 
 function [value, name] = checkExistence(folder, search_pattern)
     check = dir([folder,'\',search_pattern]);
