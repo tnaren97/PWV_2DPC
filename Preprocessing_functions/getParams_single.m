@@ -89,11 +89,35 @@ else
     ttf_pwv_radHR = NaN;
     ttu_pwv_radHR = NaN;
     xcor_pwv_radHR = NaN;
+end
+
+if exist([baseFolder '\DataAnalysis_Radial_SMS'],'dir')
+    load([baseFolder '\DataAnalysis_Radial_SMS\Relative_Time\flow.mat']);
+    roi_SMS = length(flow);
+    info = flow(1).HeaderInfo;
+    TR_AAo_SMS = info.timeres;
+
+    info = flow(3).HeaderInfo;
+    TR_AbdAo_SMS = info.timeres;
+
+    load([baseFolder '\DataAnalysis_Radial_SMS\Relative_Time\pwvTable.mat']);
+    ttp_pwv_SMS = pwvTable{4,8};
+    ttf_pwv_SMS = pwvTable{4,9};
+    ttu_pwv_SMS = pwvTable{4,10};
+    xcor_pwv_SMS = pwvTable{4,11};
+else
+    TR_AAo_SMS = NaN;
+    TR_AbdAo_SMS = NaN;
+    ttp_pwv_SMS = NaN;
+    ttf_pwv_SMS = NaN;
+    ttu_pwv_SMS = NaN;
+    xcor_pwv_SMS = NaN;
 end 
 
 params = {roi_rad roi_cart now scan_date mri_loc dx1_2 dx2_3 dx1_3 plane_dx ...
     ttp_pwv_CART ttf_pwv_CART ttu_pwv_CART xcor_pwv_CART TR_AAo_CART TR_AbdAo_CART ...
     ttp_pwv_radLR ttf_pwv_radLR ttu_pwv_radLR xcor_pwv_radLR TR_AAo_radLR TR_AbdAo_radLR ...
-    ttp_pwv_radHR ttf_pwv_radHR ttu_pwv_radHR xcor_pwv_radHR TR_AAo_radHR TR_AbdAo_radHR};
+    ttp_pwv_radHR ttf_pwv_radHR ttu_pwv_radHR xcor_pwv_radHR TR_AAo_radHR TR_AbdAo_radHR ...
+    ttp_pwv_SMS ttf_pwv_SMS ttu_pwv_SMS xcor_pwv_SMS TR_AAo_SMS TR_AbdAo_SMS};
 clear basedir dx* flow frames info mri_loc now plane_dx pwvTable roi* rrInt scan_date
 clear TR* tt* xcor* dt
