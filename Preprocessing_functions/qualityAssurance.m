@@ -1,4 +1,4 @@
-life_folder = uigetdir();
+life_folder = uigetdir("*", "Choose a LIFE folder");
 cd(life_folder)
 lifeDir = dir(life_folder);
 

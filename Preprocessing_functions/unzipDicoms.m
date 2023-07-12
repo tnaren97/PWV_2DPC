@@ -33,18 +33,22 @@ cd(unzipDir)
 dicomDir = dir(unzipDir); %get list of all life patient directories
 
     for j=3:length(dicomDir)
-        cd(dicomDir(j).name); %go into dicom folder
-        d = dir(); %list all files in dicom folder
-        if sum(contains({d.name},'dcm'))==0 %if we haven't unzipped...
-            gunzip('*.tgz', 'Dicoms'); %unzip first
-            cd('Dicoms') %move to unzipped folder
-            dd = dir(); %get the name of the only file in the new dir
-            untar(dd(3).name,'Dicoms'); %untar that file
-            movefile('Dicoms/*','..'); %move unzipped files back up
-            cd('..') %move up a directory
-            rmdir('Dicoms','s') %get rid of created dummy unzipping folder
-        end 
-        cd(unzipDir) %move back up to directory with all dicoms
+        try
+            cd(dicomDir(j).name); %go into dicom folder
+            d = dir(); %list all files in dicom folder
+            if sum(contains({d.name},'dcm'))==0 %if we haven't unzipped...
+                gunzip('*.tgz', 'Dicoms'); %unzip first
+                cd('Dicoms') %move to unzipped folder
+                dd = dir(); %get the name of the only file in the new dir
+                untar(dd(3).name,'Dicoms'); %untar that file
+                movefile('Dicoms/*','..'); %move unzipped files back up
+                cd('..') %move up a directory
+                rmdir('Dicoms','s') %get rid of created dummy unzipping folder
+            end 
+            cd(unzipDir) %move back up to directory with all dicoms
+        catch
+            continue
+        end
     end 
 
 end
