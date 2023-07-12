@@ -61,7 +61,7 @@ vz = flipud(squeeze(vz));
 % zVector = round([kx;ky;kz;0],8); % what direction the cols run w/r/to y
 % rotation = [xVector yVector zVector originShift];
 z = figure; imshow3D(vz); 
-movegui(z, "north")
+movegui(z, "east")
 
 
 %% Check Respiratory Binning
@@ -91,7 +91,7 @@ xlabel('Time (s)');
 ylabel('Respiratory Amplitude (a.u.)');
 title('Respiratory Waveform');
 clear time* resp weight last EXP INSP RESP j fid dataArray
-movegui(q, "west")
+movegui(q, "north")
 
 
 %% Command Window Output
