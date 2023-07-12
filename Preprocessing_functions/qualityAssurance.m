@@ -7,16 +7,18 @@ disp("Unzipping dicoms...")
 dcm_folder = fullfile(life_folder, 'dicoms');
 unzipDicoms(dcm_folder)
 
+disp("Note: figures will close automatically once you hit enter in the command window so you don't need to manually close them")
+
 disp('~~~~~~~~~~~~~~~~~~~ Ascending Aorta (Cartesian) ~~~~~~~~~~~~~~~~~~~')
 disp("Loading...")
 [cart_asc_exist, cart_asc] = checkExistence(dcm_folder, '*PWV_CartBH_AAo');
 if cart_asc_exist == 1
     copyfile(fullfile(dcm_folder, cart_asc), fullfile(life_folder, cart_asc))
     cart_asc_data = loadCartesian2DPC(fullfile(life_folder, cart_asc));
-    g = figure; imshow3D(cart_asc_data.vz)
-    movegui(g, "east")
     h = figure; imshow3D(cart_asc_data.mag)
     movegui(h, "west")
+    g = figure; imshow3D(cart_asc_data.vz)
+    movegui(g, "east")
     disp("Press enter in command window when ready to move on")
     pause
     close all
@@ -30,10 +32,10 @@ disp("Loading...")
 if cart_abd_exist == 1
     copyfile(fullfile(dcm_folder, cart_abd), fullfile(life_folder, cart_abd))
     cart_abd_data = loadCartesian2DPC(fullfile(life_folder, cart_abd));
-    g = figure; imshow3D(cart_abd_data.vz)
-    movegui(g, "east")
     h = figure; imshow3D(cart_abd_data.mag)
     movegui(h, "west")
+    g = figure; imshow3D(cart_abd_data.vz)
+    movegui(g, "east")
     disp("Press enter in command window when ready to move on")
     pause
     close all
@@ -52,11 +54,9 @@ if rad_asc_exist == 1
     close all
     [standard_asc_exist, standard_asc] = checkExistence(fullfile(life_folder, rad_asc), '*standard*');
     if standard_asc_exist
-        rad_asc_data = loadRadial2DPC(fullfile(life_folder, rad_asc, standard_asc, 'dat'));
-%         g = figure; imshow3D(rad_asc_data.vz)
-%         movegui(g, "north")
         h = figure; imshow3D(rad_asc_data.mag)
         movegui(h, "west")
+        rad_asc_data = loadRadial2DPC(fullfile(life_folder, rad_asc, standard_asc, 'dat'));
         disp("Press enter in command window when ready to move on")
         pause
         close all
@@ -76,11 +76,9 @@ if rad_abd_exist == 1
     close all
     [standard_abd_exist, standard_abd] = checkExistence(fullfile(life_folder, rad_abd), '*standard*');
     if standard_abd_exist
-        rad_abd_data = loadRadial2DPC(fullfile(life_folder, rad_abd, standard_abd, 'dat'));
-%         g = figure; imshow3D(rad_abd_data.vz)
-%         movegui(g, "north")
         h = figure; imshow3D(rad_abd_data.mag)
         movegui(h, "west")
+        rad_abd_data = loadRadial2DPC(fullfile(life_folder, rad_abd, standard_abd, 'dat'));
         disp("Press enter in command window when ready to move on")
         pause
         close all
