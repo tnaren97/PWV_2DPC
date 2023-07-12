@@ -60,8 +60,11 @@ vz = flipud(squeeze(vz));
 % yVector = round([jx;jy;jz;0],8); % what direction the cols run w/r/to y
 % zVector = round([kx;ky;kz;0],8); % what direction the cols run w/r/to y
 % rotation = [xVector yVector zVector originShift];
+h = figure; imshow3D(mag)
+movegui(h, "west")
 z = figure; imshow3D(vz); 
 movegui(z, "east")
+
 
 
 %% Check Respiratory Binning

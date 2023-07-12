@@ -54,8 +54,7 @@ if rad_asc_exist == 1
     close all
     [standard_asc_exist, standard_asc] = checkExistence(fullfile(life_folder, rad_asc), '*standard*');
     if standard_asc_exist
-        h = figure; imshow3D(rad_asc_data.mag)
-        movegui(h, "west")
+        
         rad_asc_data = loadRadial2DPC(fullfile(life_folder, rad_asc, standard_asc, 'dat'));
         disp("Press enter in command window when ready to move on")
         pause
@@ -76,8 +75,6 @@ if rad_abd_exist == 1
     close all
     [standard_abd_exist, standard_abd] = checkExistence(fullfile(life_folder, rad_abd), '*standard*');
     if standard_abd_exist
-        h = figure; imshow3D(rad_abd_data.mag)
-        movegui(h, "west")
         rad_abd_data = loadRadial2DPC(fullfile(life_folder, rad_abd, standard_abd, 'dat'));
         disp("Press enter in command window when ready to move on")
         pause
