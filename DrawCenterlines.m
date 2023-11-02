@@ -584,7 +584,7 @@ handles.radial(radIter).RotationMatrix = [xVector yVector zVector originShift];
 
 axes(handles.AnatDisplay); %force axes to anatomical plot
 rot = handles.radial(radIter).RotationMatrix;
-disp(rot)
+% disp(rot)
 minc = str2double(get(handles.MinContrastUpdate,'String'));
 maxc = str2double(get(handles.MaxContrastUpdate,'String'));
 
@@ -618,17 +618,23 @@ points = [x, y, z, dummy]';
 %         % POINTS(2,j) = -POINTS(2,j);
 %     end 
 % 
-%     axes(handles.CenterlineDisplay); hold on;
-%     h=scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
-%         'LineWidth',12,'DisplayName','Rad-2DPC');
-%     legend('Location','southeast');
+    % axes(handles.CenterlineDisplay); hold on;
+    % h=scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
+    %     'LineWidth',12,'DisplayName','Rad-2DPC');
+    % legend('Location','southeast');
 % end
 % disp(shift)
+
 
 for j=1:size(points,2)
     POINTS(:,j) = rot*points(:,j);
     % POINTS(2,j) = -POINTS(2,j);
-end 
+end
+axes(handles.CenterlineDisplay); hold on;
+scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
+    'LineWidth',12,'DisplayName','Rad-2DPC');
+legend('Location','southeast');
+
 points(4,:) = [];
 POINTS(4,:) = [];
 handles.radial(radIter).points = points;
