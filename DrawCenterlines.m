@@ -22,7 +22,7 @@ function varargout = DrawCenterlines(varargin)
 
 % Edit the above text to modify the response to help DrawCenterlines
 
-% Last Modified by GUIDE v2.5 28-May-2021 16:45:19
+% Last Modified by GUIDE v2.5 29-Oct-2023 21:39:12
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -535,6 +535,8 @@ radIter = handles.CurrRadial;
 [hdf5File, hdf5Dir] = uigetfile({'*.h5','Useable Files (*.h5)';
    '*.h5',  'HDF5 files (*.h5)'; ...
    '*.*',  'All Files (*.*)'}, 'Select the AAo.h5 or AbdAo.h5 file');
+hdf5Info = h5info(fullfile(hdf5Dir,hdf5File));
+imageDim = hdf5Info.Datasets(4).Dataspace.Size;
 
 fid = fopen([hdf5Dir 'pcvipr_header.txt'], 'r'); %open header
 dataArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
@@ -545,7 +547,9 @@ pcviprHeader = cell2struct(dataArray{1,2}(:),dataArray{1,1}(:),1); %turn to stru
 handles.radial(radIter).Info = pcviprHeader; %add pcvipr header to handles
 
 mag = h5read(fullfile(hdf5Dir,hdf5File),'/MAG');
+% MAG = mean(mag, 3);
 MAG = flipud(mean(mag,3));
+% MAG = fliplr(mean(MAG,3));
 handles.radial(radIter).Images = rescale(MAG);
 
 ix = pcviprHeader.ix;
@@ -561,32 +565,65 @@ sx = pcviprHeader.sx;
 sy = pcviprHeader.sy;
 sz = pcviprHeader.sz;
 
-%SMS_gap = 78;
-SMS_gap = 90; %180mm about sz
-if strcmp(hdf5File,'AAo.h5')
+SMS_gap = 78;
+% SMS_gap = 90; %180mm about sz
+if contains(hdf5File,'AAo')
     sz = sz + SMS_gap;
 else
     sz = sz - SMS_gap;
 end 
 originShift = [sx; sy; sz; 1];
+% originShift = [0; 0; sz; 1];
 
 xVector = round([ix;iy;iz;0],8); % what direction rows run w/r/to x
 yVector = round([jx;jy;jz;0],8); % what direction the cols run w/r/to y
-zVector = round([kx;ky;kz;0],8); % what direction the cols run w/r/to y
+zVector = round([kx;ky;kz;0],8); % what direction the cols run w/r/to z
+
 handles.radial(radIter).RotationMatrix = [xVector yVector zVector originShift];
+% handles.radial(radIter).RotationMatrix = [[0;0;0;0] [0;0;0;0] [0;0;0;0] [0;0;0;0]];
 
 axes(handles.AnatDisplay); %force axes to anatomical plot
 rot = handles.radial(radIter).RotationMatrix;
+disp(rot)
 minc = str2double(get(handles.MinContrastUpdate,'String'));
 maxc = str2double(get(handles.MaxContrastUpdate,'String'));
 
 imshow(handles.radial(radIter).Images,[minc maxc]);
 [y,x] = getpts(); %draw points on image along aorta
 x = pcviprHeader.matrixx - x;
-%y = pcviprHeader.matrixy - y;
+% y = pcviprHeader.matrixy - y;
+% x = imageDim(2) - x;
+% y = imageDim(1) - y;
 z = (ones(size(x,1),1)); %add z-coordinates for slice
 dummy = ones(size(x));
 points = [x, y, z, dummy]';
+
+% flag = 0;
+% h=[];
+% shift = [-pcviprHeader.matrixx; pcviprHeader.matrixy; 0;];
+% shift = [0; 0; 0; 0];
+
+% while ~flag
+%     dlgtitle = 'SMS Point Shift';
+%     prompt = {'X shift', 'Y shift', 'Z shift', 'Accept final shift (enter 1)'};
+%     fieldsize = [1 20; 1 20; 1 20; 1 20];
+%     definput = {num2str(shift(1)), num2str(shift(2)), num2str(shift(3)), num2str(flag)};
+%     opts = struct('WindowStyle', 'normal');
+%     answer = inputdlg(prompt, dlgtitle, fieldsize, definput, opts);
+%     shift = [str2double(answer{1}); str2double(answer{2}); str2double(answer{3}); 0];
+%     flag = str2num(answer{4});
+%     delete(h)
+%     for j=1:size(points,2)
+%         POINTS(:,j) = rot*points(:,j) + shift;
+%         % POINTS(2,j) = -POINTS(2,j);
+%     end 
+% 
+%     axes(handles.CenterlineDisplay); hold on;
+%     h=scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
+%         'LineWidth',12,'DisplayName','Rad-2DPC');
+%     legend('Location','southeast');
+% end
+% disp(shift)
 
 for j=1:size(points,2)
     POINTS(:,j) = rot*points(:,j);
@@ -596,11 +633,6 @@ points(4,:) = [];
 POINTS(4,:) = [];
 handles.radial(radIter).points = points;
 handles.radial(radIter).POINTS = POINTS;
-axes(handles.CenterlineDisplay); hold on;
-scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
-    'LineWidth',12,'DisplayName','Rad-2DPC');
-legend('Location','southeast');
-
 handles.CurrRadial = radIter + 1;
 guidata(hObject, handles);
 
@@ -643,7 +675,7 @@ end
 
 %scatter(handles.coronal.POINTS(1,:),handles.coronal.POINTS(3,:),'b'); hold on;
 %scatter(handles.sagittal.POINTS(1,:),handles.sagittal.POINTS(3,:),'b');
-figure; scatter(handles.axial.POINTS(1,:),handles.axial.POINTS(3,:),'b'); hold on;
+figure(1); scatter(handles.axial.POINTS(1,:),handles.axial.POINTS(3,:),'b'); hold on;
 minx = min(handles.axial.POINTS(1,:));
 maxx = max(handles.axial.POINTS(1,:));
 miny = min(handles.axial.POINTS(3,:));
@@ -659,7 +691,7 @@ hold on; plot(splinePositions2(:,1),splinePositions2(:,2),'LineWidth',2.0);
 hold off;
 handles.TraceCoronal = gcf;
 
-figure; scatter(handles.sagittal.POINTS(2,:),handles.sagittal.POINTS(3,:),'b');
+figure(2); scatter(handles.sagittal.POINTS(2,:),handles.sagittal.POINTS(3,:),'b');
 hold on; yline(splinePositions2(1,2),'--');
 yline(splinePositions2(end,2),'--');
 scatter(handles.axial.POINTS(2,:),handles.axial.POINTS(3,:),'b');
@@ -741,7 +773,8 @@ plot3(splineLine(:,1),splineLine(:,2),splineLine(:,3),'g','LineWidth',5);
 set(handles.ShowPlanesRadio,'Enable','on','Value',1)
 handles.Centerline = splineLine;
 guidata(hObject, handles);
-
+close(figure(1))
+close(figure(2))
 
 
 % --- Executes on button press in SaveCenterlinePush.
@@ -815,7 +848,7 @@ else
     imwrite(frame2im(frame),[directory filesep 'CenterlineData' filesep 'SagittalTrace.png']);
 end 
 
-set(handles.SaveText,'String','Centerline Saved!'); 
+set(handles.SaveText,'String','Centerline Saved!');
 
 
 
@@ -921,3 +954,4 @@ v = reshape(fread(fid,'short=>single'),matrix);
 fclose(fid);
 
 return
+
