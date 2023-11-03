@@ -298,8 +298,8 @@ function drawROIbutton_Callback(hObject, eventdata, handles)
     set(handles.drawROIbutton,'Enable','off'); %make it so we can't draw a second ROI
     
     planeNum = get(handles.pcPlanePopup,'Value'); %get current plane of interest (eg AAo)
-    mydlg = warndlg('Press enter when the ROI is set'); %open dialog warning 
-    waitfor(mydlg); %MUST PRESS ENTER TO PROCEED
+    % mydlg = warndlg('Press enter when the ROI is set'); %open dialog warning 
+    % waitfor(mydlg); %MUST PRESS ENTER TO PROCEED
     circle = drawcircle('FaceAlpha',0.1,'Color','g','LineWidth',1,'Deletable',0); %draw circle on PC image
     while true
         w = waitforbuttonpress; %wait for enter push ...

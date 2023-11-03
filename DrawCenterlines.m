@@ -167,12 +167,13 @@ guidata(hObject, handles);
 
 % --- Executes on button press in LoadAxialPush.
 function LoadAxialPush_Callback(hObject, eventdata, handles)
-[anatomicalFile, anatomicalDir] = uigetfile({'*.dcm;*.dicom;','Useable Files (*.dcm,*.dicom)';
-   '*.dcm',  'DICOM files (*.dcm)'; ...
-   '*.dicom','DICOM-files (*.dicom)'; ...
-   '*.*',  'All Files (*.*)'}, 'Select ONE Axial DICOM image');
-[~,~,extension] = fileparts(anatomicalFile); %get file extension
-dirInfo = dir(fullfile(anatomicalDir,['*' extension]));
+% [anatomicalFile, anatomicalDir] = uigetfile({'*.dcm;*.dicom;','Useable Files (*.dcm,*.dicom)';
+%    '*.dcm',  'DICOM files (*.dcm)'; ...
+%    '*.dicom','DICOM-files (*.dicom)'; ...
+%    '*.*',  'All Files (*.*)'}, 'Select ONE Axial DICOM image');
+% [~,~,extension] = fileparts(anatomicalFile); %get file extension
+anatomicalDir = uigetdir();
+dirInfo = dir(fullfile(anatomicalDir,'*.d*c*m'));
 handles.axial.Info = dicominfo(fullfile(anatomicalDir,dirInfo(1).name));
 for i=1:length(dirInfo) %read all dcm files
     images(:,:,i) = single(dicomread(fullfile(anatomicalDir,dirInfo(i).name)));
@@ -367,12 +368,13 @@ guidata(hObject, handles);
 % --- Executes on button press in LoadSagittalPush.
 function LoadSagittalPush_Callback(hObject, eventdata, handles)
 handles.CurrView = 'Sagittal';
-[anatomicalFile, anatomicalDir] = uigetfile({'*.dcm;*.dicom;','Useable Files (*.dcm,*.dicom)';
-   '*.dcm',  'DICOM files (*.dcm)'; ...
-   '*.dicom','DICOM-files (*.dicom)'; ...
-   '*.*',  'All Files (*.*)'}, 'Select ONE Sagittal DICOM image');
-[~,~,extension] = fileparts(anatomicalFile); %get file extension
-dirInfo = dir(fullfile(anatomicalDir,['*' extension]));
+% [anatomicalFile, anatomicalDir] = uigetfile({'*.dcm;*.dicom;','Useable Files (*.dcm,*.dicom)';
+%    '*.dcm',  'DICOM files (*.dcm)'; ...
+%    '*.dicom','DICOM-files (*.dicom)'; ...
+%    '*.*',  'All Files (*.*)'}, 'Select ONE Axial DICOM image');
+% [~,~,extension] = fileparts(anatomicalFile); %get file extension
+anatomicalDir = uigetdir();
+dirInfo = dir(fullfile(anatomicalDir,'*.d*c*m'));
 handles.sagittal.Info = dicominfo(fullfile(anatomicalDir,dirInfo(1).name));
 for i=1:length(dirInfo) %read all dcm files
     images(:,:,i) = single(dicomread(fullfile(anatomicalDir,dirInfo(i).name)));
@@ -467,12 +469,13 @@ function Seg2DCartPush_Callback(hObject, eventdata, handles)
 handles.CurrView = '2DCartesian';
 handles.SMS = 0;
 cartIter = handles.CurrCartesian;
-[anatomicalFile, anatomicalDir] = uigetfile({'*.dcm;*.dicom;','Useable Files (*.dcm,*.dicom)';
-   '*.dcm',  'DICOM files (*.dcm)'; ...
-   '*.dicom','DICOM-files (*.dicom)'; ...
-   '*.*',  'All Files (*.*)'}, 'Select ONE 2DPC Cartesian DICOM image');
-[~,~,extension] = fileparts(anatomicalFile); %get file extension
-dirInfo = dir(fullfile(anatomicalDir,['*' extension]));
+% [anatomicalFile, anatomicalDir] = uigetfile({'*.dcm;*.dicom;','Useable Files (*.dcm,*.dicom)';
+%    '*.dcm',  'DICOM files (*.dcm)'; ...
+%    '*.dicom','DICOM-files (*.dicom)'; ...
+%    '*.*',  'All Files (*.*)'}, 'Select ONE Axial DICOM image');
+% [~,~,extension] = fileparts(anatomicalFile); %get file extension
+anatomicalDir = uigetdir();
+dirInfo = dir(fullfile(anatomicalDir,'*.d*c*m'));
 handles.cartesian(cartIter).Info = dicominfo(fullfile(anatomicalDir,dirInfo(1).name));
 for i=1:length(dirInfo) %read all dcm files
     images(:,:,i) = single(dicomread(fullfile(anatomicalDir,dirInfo(i).name)));
@@ -779,8 +782,6 @@ plot3(splineLine(:,1),splineLine(:,2),splineLine(:,3),'g','LineWidth',5);
 set(handles.ShowPlanesRadio,'Enable','on','Value',1)
 handles.Centerline = splineLine;
 guidata(hObject, handles);
-close(figure(1))
-close(figure(2))
 
 
 % --- Executes on button press in SaveCenterlinePush.
@@ -831,13 +832,16 @@ anatCLdataset.Distances = distances;
 anatCLdataset.ROIindices = IDX;
 anatCLdataset.PlaneDistances = PlaneDistances;
 directory = uigetdir(); %saving location
-mkdir([directory filesep 'CenterlineData']);
+if ~exist([directory filesep 'CenterlineData'], "dir")
+    mkdir([directory filesep 'CenterlineData']);
+end
 if handles.SMS
     save([directory filesep 'anatCLdataset_SMS.mat'],'anatCLdataset');
 else
     save([directory filesep 'anatCLdataset.mat'],'anatCLdataset');
 end 
-
+% disp(handles.TraceCoronal)
+% disp(handles.TraceSagittal)
 if handles.SMS
     frame = getframe(handles.CenterlineDisplay);
     imwrite(frame2im(frame),[directory filesep 'CenterlineData' filesep 'Centerline3D_SMS.png']);
@@ -854,6 +858,8 @@ else
     imwrite(frame2im(frame),[directory filesep 'CenterlineData' filesep 'SagittalTrace.png']);
 end 
 
+close(handles.TraceCoronal)
+close(handles.TraceSagittal)
 set(handles.SaveText,'String','Centerline Saved!');
 
 
