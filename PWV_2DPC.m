@@ -132,6 +132,7 @@ function load2DPCbutton_Callback(hObject, eventdata, handles)
        '*.mat',  'MAT-files (*.mat)'; ...
        '*.h5',   'HDF5-files (*.h5)'; ...
        '*.*',    'All Files (*.*)'}, 'Select ONE 2DPC file in the dataset');
+    % pcDir = uigetdir();
     pcIter = handles.global.pcIter;
     [~,~,extension] = fileparts(pcFile);
     dirInfo = dir(fullfile(pcDir,['*' extension]));

@@ -127,13 +127,25 @@ alpha = 0.3;
 set(h,'MarkerEdgeAlpha',alpha,'MarkerFaceAlpha',alpha);
 legend('Location','southeast');
 
-for t=1:length(handles.cartesian)
-    POINTS = handles.cartesian(t).POINTS;
-    scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'k*', ...
-        'LineWidth',12, ...
-        'DisplayName','Cart-2DPC');
-    legend('Location','southeast','AutoUpdate','off');
-end 
+if isfield(anatCLdataset,'Cartesian2DPC')
+    for t=1:length(handles.cartesian)
+        POINTS = handles.cartesian(t).POINTS;
+        scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'k*', ...
+            'LineWidth',12, ...
+            'DisplayName','Cart-2DPC');
+        legend('Location','southeast','AutoUpdate','off');
+    end
+end
+
+if isfield(anatCLdataset,'RadialSMS')
+    for t=1:length(handles.radial)
+        POINTS = handles.radial(t).POINTS;
+        scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
+            'LineWidth',12, ...
+            'DisplayName','SMS-2DPC');
+        legend('Location','southeast','AutoUpdate','off');
+    end
+end
 
 splineLine = handles.Centerline;
 axes(handles.CenterlineDisplay);
@@ -520,9 +532,9 @@ POINTS(4,:) = [];
 handles.cartesian(cartIter).points = points;
 handles.cartesian(cartIter).POINTS = POINTS;
 axes(handles.CenterlineDisplay); hold on;
-scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'k*', ...
+scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
     'LineWidth',4, ...
-    'DisplayName','Cart-2DPC');
+    'DisplayName','SMS-2DPC');
 legend('Location','southeast','AutoUpdate','off');
 
 handles.CurrCartesian = cartIter + 1;
@@ -636,7 +648,7 @@ end
 axes(handles.CenterlineDisplay); hold on;
 scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
     'LineWidth',12,'DisplayName','Rad-2DPC');
-legend('Location','southeast');
+legend('Location','southeast', 'AutoUpdate','on');
 
 points(4,:) = [];
 POINTS(4,:) = [];
@@ -735,28 +747,28 @@ zSum = sum(abs(splineLine(:,3)));
 
 axes(handles.CenterlineDisplay);
 plot3(splineLine(:,1),splineLine(:,2),splineLine(:,3),'g','LineWidth',5);
-% if handles.SMS
-%     for t=1:length(handles.radial)
-%         im = handles.radial(t).Images;
-%         dim1 = size(im,1);
-%         dim2 = size(im,2);
-%         [x,y,z] = meshgrid(1:dim1,1:dim2,1:2);
-%         rot = handles.radial(t).RotationMatrix;
-%         row1 = nonzeros(rot(1,:));
-%         row2 = nonzeros(rot(2,:));
-%         row3 = nonzeros(rot(3,:));
-%         X = x.*row1(1) + row1(2);
-%         Y = y.*row2(1) + row2(2);
-%         Z = z.*row3(1) + row3(2);
-%         xslice = []; 
-%         yslice = []; 
-%         zslice = Z(1,1,1);
-%         I = repmat(im,[1 1 2]);
-%         Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
-%         handles.Slices = Slice;
-%         shading interp; colormap gray; hold on;
-%     end 
-% else
+if handles.SMS
+    for t=1:length(handles.radial)
+        im = handles.radial(t).Images;
+        dim1 = size(im,1);
+        dim2 = size(im,2);
+        [x,y,z] = meshgrid(1:dim1,1:dim2,1:2);
+        rot = handles.radial(t).RotationMatrix;
+        row1 = nonzeros(rot(1,:));
+        row2 = nonzeros(rot(2,:));
+        row3 = nonzeros(rot(3,:));
+        X = x.*row1(1) + row1(2);
+        Y = y.*row2(1) + row2(2);
+        Z = z.*row3(1) + row3(2);
+        xslice = []; 
+        yslice = []; 
+        zslice = Z(1,1,1);
+        I = repmat(im,[1 1 2]);
+        Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
+        handles.Slices = Slice;
+        shading interp; colormap gray; hold on;
+    end 
+else
     for t=1:length(handles.cartesian)
         im = handles.cartesian(t).Images;
         dim1 = size(im,1);
@@ -777,7 +789,7 @@ plot3(splineLine(:,1),splineLine(:,2),splineLine(:,3),'g','LineWidth',5);
         handles.Slices = Slice;
         shading interp; colormap gray; hold on;
     end 
-% end 
+end 
 
 set(handles.ShowPlanesRadio,'Enable','on','Value',1)
 handles.Centerline = splineLine;
