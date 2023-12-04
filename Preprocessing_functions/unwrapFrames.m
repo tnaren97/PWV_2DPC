@@ -1,6 +1,6 @@
 %% Data Loading
 directory = pwd;
-fid = fopen([directory '\pcvipr_header.txt'], 'r');
+fid = fopen([directory filesep 'pcvipr_header.txt'], 'r');
 dataArray = textscan(fid, '%s%s%[^\n\r]', 'Delimiter', ' ', 'MultipleDelimsAsOne', true, 'ReturnOnError', false);
 fclose(fid); clear ans;
 

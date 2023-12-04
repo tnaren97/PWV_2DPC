@@ -2,8 +2,8 @@ now = datestr(now,'mm/dd/yyyy');
 baseFolder = 'PWV_2DPC_Analysis-v2';
 
 %% Cartesian
-if exist([baseFolder '\DataAnalysis_Cartesian'],'dir')
-    load([baseFolder '\DataAnalysis_Cartesian\Relative_Time\flow.mat']);
+if exist([baseFolder filesep 'DataAnalysis_Cartesian'],'dir')
+    load([baseFolder filesep 'DataAnalysis_Cartesian' filesep 'Relative_Time' filesep 'flow.mat']);
     roi_cart = length(flow);
     info = flow(1).HeaderInfo;
     dt = datetime([info.AcquisitionDate ' ' info.AcquisitionTime],'InputFormat','yyyyMMdd HHmmss');
@@ -21,7 +21,7 @@ if exist([baseFolder '\DataAnalysis_Cartesian'],'dir')
     dx2 = info.ImagePositionPatient(3);
     plane_dx = abs(dx1-dx2); 
 
-    load([baseFolder '\DataAnalysis_Cartesian\Relative_Time\pwvTable.mat']);
+    load([baseFolder filesep 'DataAnalysis_Cartesian' filesep 'Relative_Time' filesep 'pwvTable.mat']);
     dx1_2 = pwvTable{1,2};
     dx2_3 = pwvTable{2,2};
     dx1_3 = pwvTable{3,2};
@@ -45,8 +45,8 @@ else
 end 
 
 %% Radial Low Resolution
-if exist([baseFolder '\DataAnalysis_Radial_LowRes'],'dir')
-    load([baseFolder '\DataAnalysis_Radial_LowRes\Relative_Time\flow.mat']);
+if exist([baseFolder filesep 'DataAnalysis_Radial_LowRes'],'dir')
+    load([baseFolder filesep 'DataAnalysis_Radial_LowRes' filesep 'Relative_Time' filesep 'flow.mat']);
     roi_rad = length(flow);
     info = flow(1).HeaderInfo;
     TR_AAo_radLR = info.timeres;
@@ -54,7 +54,7 @@ if exist([baseFolder '\DataAnalysis_Radial_LowRes'],'dir')
     info = flow(3).HeaderInfo;
     TR_AbdAo_radLR = info.timeres;
 
-    load([baseFolder '\DataAnalysis_Radial_LowRes\Relative_Time\pwvTable.mat']);
+    load([baseFolder filesep 'DataAnalysis_Radial_LowRes' filesep 'Relative_Time' filesep 'pwvTable.mat']);
     ttp_pwv_radLR = pwvTable{4,8};
     ttf_pwv_radLR = pwvTable{4,9};
     ttu_pwv_radLR = pwvTable{4,10};
@@ -69,15 +69,15 @@ else
 end 
 
 %% Radial High Resolution (Local Low Rank Reconstruction)
-if exist([baseFolder '\DataAnalysis_Radial_HighRes'],'dir')
-    load([baseFolder '\DataAnalysis_Radial_HighRes\Relative_Time\flow.mat']);
+if exist([baseFolder filesep 'DataAnalysis_Radial_HighRes'],'dir')
+    load([baseFolder filesep 'DataAnalysis_Radial_HighRes' filesep 'Relative_Time' filesep 'flow.mat']);
     info = flow(1).HeaderInfo;
     TR_AAo_radHR = info.timeres;
 
     info = flow(3).HeaderInfo;
     TR_AbdAo_radHR = info.timeres;
 
-    load([baseFolder '\DataAnalysis_Radial_HighRes\Relative_Time\pwvTable.mat']);
+    load([baseFolder filesep 'DataAnalysis_Radial_HighRes' filesep 'Relative_Time' filesep 'pwvTable.mat']);
     ttp_pwv_radHR = pwvTable{4,8};
     ttf_pwv_radHR = pwvTable{4,9};
     ttu_pwv_radHR = pwvTable{4,10};
@@ -91,8 +91,8 @@ else
     xcor_pwv_radHR = NaN;
 end
 
-if exist([baseFolder '\DataAnalysis_Radial_SMS'],'dir')
-    load([baseFolder '\DataAnalysis_Radial_SMS\Relative_Time\flow.mat']);
+if exist([baseFolder filesep 'DataAnalysis_Radial_SMS'],'dir')
+    load([baseFolder filesep 'DataAnalysis_Radial_SMS' filesep 'Relative_Time' filesep 'flow.mat']);
     roi_SMS = length(flow);
     info = flow(1).HeaderInfo;
     TR_AAo_SMS = info.timeres;
@@ -100,7 +100,7 @@ if exist([baseFolder '\DataAnalysis_Radial_SMS'],'dir')
     info = flow(3).HeaderInfo;
     TR_AbdAo_SMS = info.timeres;
 
-    load([baseFolder '\DataAnalysis_Radial_SMS\Relative_Time\pwvTable.mat']);
+    load([baseFolder filesep 'DataAnalysis_Radial_SMS' filesep 'Relative_Time' filesep 'pwvTable.mat']);
     ttp_pwv_SMS = pwvTable{4,8};
     ttf_pwv_SMS = pwvTable{4,9};
     ttu_pwv_SMS = pwvTable{4,10};

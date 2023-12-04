@@ -29,6 +29,7 @@ if isempty(varargin)
 else
     unzipDir = varargin{1};
 end
+curr_dir = pwd;
 cd(unzipDir)
 dicomDir = dir(unzipDir); %get list of all life patient directories
 
@@ -50,5 +51,5 @@ dicomDir = dir(unzipDir); %get list of all life patient directories
             continue
         end
     end 
-
+cd(curr_dir)
 end

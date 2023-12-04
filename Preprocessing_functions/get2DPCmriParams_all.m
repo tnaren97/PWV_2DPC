@@ -22,7 +22,7 @@ for i=9:length(d)
                 cd('Dicoms') %move to unzipped folder
                 dddd = dir(); %get the name of the only file in the new dir
                 untar(dddd(3).name,'Dicoms'); %untar that file
-                movefile('Dicoms/*','..'); %move unzipped files back up
+                movefile(['Dicoms' filesep '*'],'..'); %move unzipped files back up
                 cd('..') %move up a directory
                 rmdir('Dicoms','s') %get rid of created dummy unzipping folder
                 ddd = dir('*dcm');

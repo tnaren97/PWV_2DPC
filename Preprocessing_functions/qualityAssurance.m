@@ -6,6 +6,7 @@ lifeDir = dir(life_folder);
 disp("Unzipping dicoms...")
 dcm_folder = fullfile(life_folder, 'dicoms');
 unzipDicoms(dcm_folder)
+cd(life_folder)
 
 disp("Note: figures will close automatically once you hit enter in the command window so you don't need to manually close them")
 
@@ -87,7 +88,7 @@ disp("Quality assurance complete!")
 disp("(•_•)    ( •_•)>⌐■-■     (⌐■_■)")
 
 function [value, name] = checkExistence(folder, search_pattern)
-    check = dir([folder,'\',search_pattern]);
+    check = dir([folder filesep search_pattern]);
     if isempty(check)
         disp('No folders found')
         value = 0;

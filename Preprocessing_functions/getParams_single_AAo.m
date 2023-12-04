@@ -2,8 +2,8 @@ basedir = pwd;
 now = datestr(now,'mm/dd/yyyy');
 
 %% Cartesian
-if exist('PWV_2DPC_Analysis\DataAnalysis_Cartesian','dir')
-    load('PWV_2DPC_Analysis\DataAnalysis_Cartesian\flow.mat');
+if exist(['PWV_2DPC_Analysis' filesep 'DataAnalysis_Cartesian'],'dir')
+    load(['PWV_2DPC_Analysis' filesep 'DataAnalysis_Cartesian' filesep 'flow.mat']);
     roi_cart = length(flow);
     info = flow(1).HeaderInfo;
     dt = datetime([info.AcquisitionDate ' ' info.AcquisitionTime],'InputFormat','yyyyMMdd HHmmss');
@@ -15,7 +15,7 @@ if exist('PWV_2DPC_Analysis\DataAnalysis_Cartesian','dir')
     TR_AbdAo_CART = NaN;
     plane_dx = NaN;
 
-    load('PWV_2DPC_Analysis\DataAnalysis_Cartesian\pwvTable.mat');
+    load(['PWV_2DPC_Analysis' filesep 'DataAnalysis_Cartesian' filesep 'pwvTable.mat']);
     dx1_2 = pwvTable{1,2};
     dx2_3 = NaN;
     dx1_3 = NaN;
@@ -44,14 +44,14 @@ end
 % clear TR* tt* xcor* dt
 
 %% Radial Low Resolution
-if exist('PWV_2DPC_Analysis\DataAnalysis_Radial_LowRes','dir')
-    load('PWV_2DPC_Analysis\DataAnalysis_Radial_LowRes\flow.mat');
+if exist(['PWV_2DPC_Analysis' filesep 'DataAnalysis_Radial_LowRes'],'dir')
+    load(['PWV_2DPC_Analysis' filesep 'DataAnalysis_Radial_LowRes' filesep 'flow.mat']);
     roi_rad = length(flow);
     info = flow(1).HeaderInfo;
     TR_AAo_radLR = info.timeres;
     TR_AbdAo_radLR = NaN;
 
-    load('PWV_2DPC_Analysis\DataAnalysis_Radial_LowRes\pwvTable.mat');
+    load(['PWV_2DPC_Analysis' filesep 'DataAnalysis_Radial_LowRes' filesep 'pwvTable.mat']);
     ttp_pwv_radLR = pwvTable{3,8};
     ttf_pwv_radLR = pwvTable{3,9};
     ttu_pwv_radLR = pwvTable{3,10};
@@ -66,13 +66,13 @@ else
 end 
 
 %% Radial High Resolution (Local Low Rank Reconstruction)
-if exist('PWV_2DPC_Analysis\DataAnalysis_Radial_HighRes','dir')
-    load('PWV_2DPC_Analysis\DataAnalysis_Radial_HighRes\flow.mat');
+if exist(['PWV_2DPC_Analysis' filesep 'DataAnalysis_Radial_HighRes'],'dir')
+    load(['PWV_2DPC_Analysis' filesep 'DataAnalysis_Radial_HighRes' filesep 'flow.mat']);
     info = flow(1).HeaderInfo;
     TR_AAo_radHR = info.timeres;
     TR_AbdAo_radHR = NaN;
 
-    load('PWV_2DPC_Analysis\DataAnalysis_Radial_HighRes\pwvTable.mat');
+    load(['PWV_2DPC_Analysis' filesep 'DataAnalysis_Radial_HighRes' filesep 'pwvTable.mat']);
     ttp_pwv_radHR = pwvTable{3,8};
     ttf_pwv_radHR = pwvTable{3,9};
     ttu_pwv_radHR = pwvTable{3,10};

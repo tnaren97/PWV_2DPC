@@ -7,7 +7,7 @@ else
 end
 cd(directory)
 
-fid = fopen([directory '\pcvipr_header.txt'], 'r');
+fid = fopen([directory filesep 'pcvipr_header.txt'], 'r');
 dataArray = textscan(fid, '%s%s%[^\n\r]', 'Delimiter', ' ', 'MultipleDelimsAsOne', true, 'ReturnOnError', false);
 fclose(fid); clear ans;
 
@@ -29,11 +29,11 @@ vz  = zeros(resx,resy,nframes);
 mag = zeros(resx,resy,nframes);
 compd  = zeros(resx,resy,nframes);
 for j = 1:nframes   
-    vx(:,:,j) = load_dat(fullfile(directory, ['\ph_' num2str(j-1,'%03i') '_vd_1.dat']),[resx resy]);
-    vy(:,:,j) = load_dat(fullfile(directory, ['\ph_' num2str(j-1,'%03i') '_vd_2.dat']),[resx resy]);
-    vz(:,:,j) = load_dat(fullfile(directory, ['\ph_' num2str(j-1,'%03i') '_vd_3.dat']),[resx resy]);
-    mag(:,:,j) = load_dat(fullfile(directory, ['\ph_' num2str(j-1,'%03i') '_mag.dat']),[resx resy]);
-    compd(:,:,j) = load_dat(fullfile(directory, ['\ph_' num2str(j-1,'%03i') '_cd.dat']),[resx resy]);
+    vx(:,:,j) = load_dat(fullfile(directory, [filesep 'ph_' num2str(j-1,'%03i') '_vd_1.dat']),[resx resy]);
+    vy(:,:,j) = load_dat(fullfile(directory, [filesep 'ph_' num2str(j-1,'%03i') '_vd_2.dat']),[resx resy]);
+    vz(:,:,j) = load_dat(fullfile(directory, [filesep 'ph_' num2str(j-1,'%03i') '_vd_3.dat']),[resx resy]);
+    mag(:,:,j) = load_dat(fullfile(directory, [filesep 'ph_' num2str(j-1,'%03i') '_mag.dat']),[resx resy]);
+    compd(:,:,j) = load_dat(fullfile(directory, [filesep 'ph_' num2str(j-1,'%03i') '_cd.dat']),[resx resy]);
 end
 MAG = flipud(MAG);
 CD = flipud(CD);
