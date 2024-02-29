@@ -1,5 +1,5 @@
 now = datestr(now,'mm/dd/yyyy');
-baseFolder = 'PWV_2DPC_Analysis-v2';
+baseFolder = uigetdir(pwd, "Select PWV analysis folder");
 
 %% Cartesian
 if exist([baseFolder filesep 'DataAnalysis_Cartesian'],'dir')

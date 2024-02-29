@@ -640,6 +640,7 @@ function pgShift_CreateFcn(hObject, eventdata, handles)
 % --- Executes on button press in completeLoadingROI.
 function completeLoadingROI_Callback(hObject, eventdata, handles)
     handles.global.startAnalyzing = 1; %turn on flag to state that we are ready for PWV analysis
+    handles.global.analysisType = "Relative_Time";
     handles.flow = organizeFlowInfo(handles);
     
     % COMPUTE TIME SHIFTS
@@ -782,11 +783,19 @@ function TimeVsDistance_CreateFcn(hObject, eventdata, handles)
 
 % --- EXPORT ANALYSIS - CALLBACK
 function exportAnalysisButton_Callback(hObject, eventdata, handles)
-    date = datestr(now); %get current date/time
-    chopDate = [date(1:2) '-' date(4:6) '-' date(10:11) '-' date(13:14) date(16:17)]; %chop date up
+    date = string(datetime('now', 'Format', 'yyyy-MM-dd-HHmm'));
+    initials = inputdlg("Please type in your initials");
+    folderName = ["PWV_2DPC_Analysis_" date initials{1}];
     globals = handles.global;
     
     for a=1:2
+        if a==1
+            handles.globals.analysisType = 'Absolute_Time';
+            globals.analysisType = 'Absolute_Time';
+        else
+            handles.globals.analysisType = 'Relative_Time';
+            globals.analysisType = 'Relative_Time';
+        end
         flow = computeTTs(handles.flow,globals); %recalculate flow struct for each interp
         numCompares = numel(flow);
         handles.flow = flow;
@@ -890,7 +899,7 @@ function exportAnalysisButton_Callback(hObject, eventdata, handles)
         cd([baseDir filesep dataDir]); %go to it
         mkdir(globals.analysisType);
         cd(globals.analysisType);
-        writetable(pwvTable,['Summary_' chopDate '.xlsx'],'FileType','spreadsheet'); %write excel sheet for each interp
+        writetable(pwvTable,['Summary_' date '.xlsx'],'FileType','spreadsheet'); %write excel sheet for each interp
         %if strcmp(globals.interpType,'Gaussian')
             saveTTplots(handles,flow);
         %end 
@@ -908,15 +917,13 @@ function exportAnalysisButton_Callback(hObject, eventdata, handles)
         pcDatasets = handles.pcDatasets;
         save('pcDatasets.mat','pcDatasets');
         cd(globals.homeDir); %go back home  
-        if ~exist('PWV_2DPC_Analysis-v2','dir')
-            mkdir('PWV_2DPC_Analysis-v2');
+        if ~exist(folderName,'dir')
+            mkdir(folderName);
         end 
-        movefile(dataDir,'PWV_2DPC_Analysis-v2');
-        handles.globals.analysisType = 'Relative_Time';
-        globals.analysisType = 'Relative_Time';
+        movefile(dataDir,folderName);
         guidata(hObject, handles);
     end 
-    movefile(['ROIimages_' handles.global.dataType],'PWV_2DPC_Analysis-v2');
+    movefile(['ROIimages_' handles.global.dataType],folderName);
     set(handles.exportDone,'String','Export Completed!');
 
     guidata(hObject, handles);
@@ -1055,6 +1062,7 @@ function flow = computeTTs(flow,globals)
             flow(i).Shifted.times = flow(1).Shifted.times;
         else
             disp('Please select correct data analysis type (Absolute_Time or Relative_Time)');
+            break;
         end 
         timeres = times(2)-times(1); %temporal resolution (ms)
         curvePoints(i).times = times;

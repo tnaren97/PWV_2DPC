@@ -798,6 +798,8 @@ guidata(hObject, handles);
 
 % --- Executes on button press in SaveCenterlinePush.
 function SaveCenterlinePush_Callback(hObject, eventdata, handles)
+initials = inputdlg("Please type in your initials");
+date = string(datetime('now', 'Format', 'yyyy-MM-dd-HHmm'));
 centerline = handles.Centerline;
 PC = [];
 if handles.SMS
@@ -844,30 +846,32 @@ anatCLdataset.Distances = distances;
 anatCLdataset.ROIindices = IDX;
 anatCLdataset.PlaneDistances = PlaneDistances;
 directory = uigetdir(); %saving location
-if ~exist([directory filesep 'CenterlineData'], "dir")
-    mkdir([directory filesep 'CenterlineData']);
+centerline_folder = strcat(directory, filesep, 'CenterlineData_', date, "_", initials{1});
+disp(centerline_folder)
+if ~exist(centerline_folder, "dir")
+    mkdir(centerline_folder);
 end
 if handles.SMS
-    save([directory filesep 'anatCLdataset_SMS.mat'],'anatCLdataset');
+    save(strcat(directory, filesep, 'anatCLdataset_SMS_', date, "_", initials{1}, '.mat'),'anatCLdataset');
 else
-    save([directory filesep 'anatCLdataset.mat'],'anatCLdataset');
+    save(strcat(directory, filesep, 'anatCLdataset_', date, "_", initials{1}, '.mat'),'anatCLdataset');
 end 
 % disp(handles.TraceCoronal)
 % disp(handles.TraceSagittal)
 if handles.SMS
     frame = getframe(handles.CenterlineDisplay);
-    imwrite(frame2im(frame),[directory filesep 'CenterlineData' filesep 'Centerline3D_SMS.png']);
+    imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'Centerline3D_SMS.png'));
     frame = getframe(handles.TraceCoronal);
-    imwrite(frame2im(frame),[directory filesep 'CenterlineData' filesep 'CoronalTrace_SMS.png']);
+    imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'CoronalTrace_SMS.png'));
     frame = getframe(handles.TraceSagittal);
-    imwrite(frame2im(frame),[directory filesep 'CenterlineData' filesep 'SagittalTrace_SMS.png']);
+    imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'SagittalTrace_SMS.png'));
 else
     frame = getframe(handles.CenterlineDisplay);
-    imwrite(frame2im(frame),[directory filesep 'CenterlineData' filesep 'Centerline3D.png']);
+    imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'Centerline3D.png'));
     frame = getframe(handles.TraceCoronal);
-    imwrite(frame2im(frame),[directory filesep 'CenterlineData' filesep 'CoronalTrace.png']);
+    imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'CoronalTrace.png'));
     frame = getframe(handles.TraceSagittal);
-    imwrite(frame2im(frame),[directory filesep 'CenterlineData' filesep 'SagittalTrace.png']);
+    imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'SagittalTrace.png'));
 end 
 
 close(handles.TraceCoronal)

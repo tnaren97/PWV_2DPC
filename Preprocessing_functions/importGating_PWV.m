@@ -1,8 +1,9 @@
 %% Reads/displays retrospectively gated PCVIPR gating track information.
 
-% Author: Grant Roberts
+% Author: Grant Roberts, Tarun Naren
 % Date: September 18 2019
 % Updated: December 15 2021
+% Updated: February 29 2024
 
 % Fully functional for the following gating file types:
 %   ecg_track_xxxxxx WITH SCAN_INFO FILE (oldest)
@@ -14,7 +15,20 @@
 % May not be accurate for prospectively gated data.
 
 %% Filter Gating Directory
-gatingDir = uigetdir(pwd, 'Select the directory with the gating tracks');
+function importGating_PWV(varargin)
+orig_dir = pwd;
+
+if nargin < 1
+    gatingDir = uigetdir(pwd, 'Select the directory with the gating tracks');
+elseif nargin == 1
+    gatingDir = strcat(pwd, filesep, varargin{1});
+    disp(gatingDir)
+else
+    disp("Too many arguements!")
+    return;
+end
+
+
 cd(gatingDir) %move to this directory
 %gatingDir = pwd;
 
@@ -246,16 +260,16 @@ if ~isempty(idx)
     filesLoaded = [filesLoaded;name];
     ecgData.trigger.resp = trigger.resp;
 end 
-        
+
 
 %% Plotting (with complete waveforms)
 if sum(contains(filesLoaded,'PPG'))==2 % if we have 2 ppg waveform files
-    figure; plot(waveform.ppg); % unsure what the time resolution is..
-    title('Raw PG Waveform with Triggers');
-    hold on; trigPoints = nan(length(waveform.ppg),1); % expand trigger point vector to match ppg vector length
-    trigPoints(trigger.ppg) = waveform.ppg(trigger.ppg); % find where the trigger points occur in waveform.ppg
-    scatter(1:length(trigPoints),trigPoints,'filled','green'); % plot points of triggers on ppg waveform
-    legend('Raw PPG Waveform','Triggers');
+    % figure; plot(waveform.ppg); % unsure what the time resolution is..
+    % title('Raw PG Waveform with Triggers');
+    % hold on; trigPoints = nan(length(waveform.ppg),1); % expand trigger point vector to match ppg vector length
+    % trigPoints(trigger.ppg) = waveform.ppg(trigger.ppg); % find where the trigger points occur in waveform.ppg
+    % scatter(1:length(trigPoints),trigPoints,'filled','green'); % plot points of triggers on ppg waveform
+    % legend('Raw PPG Waveform','Triggers');
     fprintf('\nRaw Waveform Signal:\n');
     SNRppg = snr(waveform.ppg); % get SNR measure from power spectrum analysis
     SNRthresh = -8;
@@ -264,16 +278,16 @@ if sum(contains(filesLoaded,'PPG'))==2 % if we have 2 ppg waveform files
     else
         fprintf('   PPG: LIKELY NOISE\n');
     end 
-    savefig('Raw_PG_waveform_triggers.fig')
+    % savefig('Raw_PG_waveform_triggers.fig')
 end 
 
 if sum(contains(filesLoaded,'RESP'))==2 % if we have 2 resp waveform files
-    figure; plot(waveform.resp);
-    title('Raw Respiratory Waveform with Triggers');
-    hold on; trigPoints = nan(length(waveform.resp),1);
-    trigPoints(trigger.resp) = waveform.resp(trigger.resp);
-    scatter(1:length(trigPoints),trigPoints,'filled','green');
-    legend('Raw Respiratory Waveform','Bellow Triggers');
+    % figure; plot(waveform.resp);
+    % title('Raw Respiratory Waveform with Triggers');
+    % hold on; trigPoints = nan(length(waveform.resp),1);
+    % trigPoints(trigger.resp) = waveform.resp(trigger.resp);
+    % scatter(1:length(trigPoints),trigPoints,'filled','green');
+    % legend('Raw Respiratory Waveform','Bellow Triggers');
     SNRresp = snr(waveform.resp);
     SNRthresh = -8;
     if SNRresp>SNRthresh % this is an arbitray threshold value, can be changed
@@ -281,21 +295,21 @@ if sum(contains(filesLoaded,'RESP'))==2 % if we have 2 resp waveform files
     else
         fprintf('   RESP: LIKELY NOISE\n');
     end 
-    savefig('Raw_resp_waveform_triggers.fig')
+    % savefig('Raw_resp_waveform_triggers.fig')
 end 
 
 if sum(contains(filesLoaded,'ECG'))==4 % if we have 4 ecg waveform files
-    figure; sgtitle('Raw ECG Waveform with Triggers');
-    subplot(2,1,1); plot(waveform.ecg2); title('ECG Lead 2');
-    hold on; trigPoints = nan(length(waveform.ecg2),1);
-    trigPoints(trigger.ecg2) = waveform.ecg2(trigger.ecg2);
-    scatter(1:length(trigPoints),trigPoints,'filled','green');
-    legend('ECG2','ECG2 Triggers'); hold off
-    subplot(2,1,2); plot(waveform.ecg3); title('ECG Lead 3');
-    hold on; trigPoints = nan(length(waveform.ecg3),1);
-    trigPoints(trigger.ecg3) = waveform.ecg3(trigger.ecg3);
-    scatter(1:length(trigPoints),trigPoints,'filled','green');
-    legend('ECG3','ECG3 Triggers'); hold off
+    % figure; sgtitle('Raw ECG Waveform with Triggers');
+    % subplot(2,1,1); plot(waveform.ecg2); title('ECG Lead 2');
+    % hold on; trigPoints = nan(length(waveform.ecg2),1);
+    % trigPoints(trigger.ecg2) = waveform.ecg2(trigger.ecg2);
+    % scatter(1:length(trigPoints),trigPoints,'filled','green');
+    % legend('ECG2','ECG2 Triggers'); hold off
+    % subplot(2,1,2); plot(waveform.ecg3); title('ECG Lead 3');
+    % hold on; trigPoints = nan(length(waveform.ecg3),1);
+    % trigPoints(trigger.ecg3) = waveform.ecg3(trigger.ecg3);
+    % scatter(1:length(trigPoints),trigPoints,'filled','green');
+    % legend('ECG3','ECG3 Triggers'); hold off
     SNRecg2 = snr(waveform.ecg2);
     SNRecg3 = snr(waveform.ecg3);
     SNRthresh = -8;
@@ -309,7 +323,7 @@ if sum(contains(filesLoaded,'ECG'))==4 % if we have 4 ecg waveform files
     else
         fprintf('   ECG3: LIKELY NOISE\n');
     end
-    savefig('Raw_ecg_waveforms_triggers.fig')
+    % savefig('Raw_ecg_waveforms_triggers.fig')
 end 
 
 
@@ -381,7 +395,7 @@ if ~isempty(ecgIdx) && ~dataLoaded %if we found something/haven't already loaded
     fid = fopen(ecgName, 'rb');
     ecg = fread(fid,'int', 'b');
     fclose(fid) %from ecg track
-    
+
     % Determine projection order, changes depending on PR_ORDER
     acquisition_order = zeros(nproj,1); % array for all projections     
     sub_order = bitreverse(subproj); % bit reverse for the subframes
@@ -413,13 +427,13 @@ if ~isempty(ecgIdx) && ~dataLoaded %if we found something/haven't already loaded
     ecgTrack.ecg = ecg_sorted; % ecg (sawtooth) waveform
     ecgTrack.time = time; % time at each data point (ms)
     ecgTrack.acq = (1:length(ecg_sorted))'; % data acquisition number
-    
+
     % Match recon RR calculation
     within = ecgTrack.ecg<2000 & ecgTrack.ecg>0; %see gating_lib.cpp
     ecgTrack.recon_rr = 2*median(ecgTrack.ecg(within)); %average RR
     %method above robust to decreased sampling rates of ecg sawtooth fx
     %e.g. full gating tracks vs. regular gating tracks
-    
+
     [rrECG, peaksECG] = getRR(ecgTrack.ecg); % get rr intervals from ecg data
         ecgTrack.rr = nan(length(ecgTrack.ecg),1); 
         ecgTrack.rr(peaksECG) = rrECG; % fill in NaNs with rr intervals
@@ -440,18 +454,18 @@ if ~isempty(ecgIdx) && ~dataLoaded %if we found something/haven't already loaded
         ecgTrack.clean = ecgTrack.rr;
         ecgTrack.clean(missedHBIdx) = nan;
         ecgTrack.clean(earlyTrigIdx) = nan; % data which has missed HB and early trigger events removed
-    
+
     % Second Method to DetectOutliers
     outliers = isoutlier(gatingTrack.rr);
     gatingTrack.outliers = nan(size(gate,1),1);
     gatingTrack.outliers(outliers) = gatingTrack.rr(outliers);
     gatingTrack.clean = gatingTrack.rr;
     gatingTrack.clean(outliers) = nan; %remove missed HBs
-    
+
 %%%% Plotting and Output %%%%
     ecgTrack.timeres = mean(diff(ecgTrack.time)); %find time resolution by finding most common value
     time = ecgTrack.time/1000; %convert to seconds
-    
+
     % PG/ECG Subfigure
     avg = nanmean(ecgTrack.rr);
     stdv = nanstd(ecgTrack.rr);
@@ -519,15 +533,19 @@ clear earlyTrigIdx missedHBIdx lowerLim upperLim jitter
 
 diary off % turn off diary, stop writing to ecgInformation.txt
 
+cd(orig_dir)
+
+end
+
 %% Ancillary functions
 function outputResults(datastruct,gatingDir,filesLoaded)
     %%%%% Command Line Output %%%%%
-    fprintf('ECG/PG Gating Information:\n');
-    fprintf('    Time: %s\n',datetime('now'));
-    fprintf('    Directory: %s\n',gatingDir);
-    for i=1:length(filesLoaded)
-        fprintf('    Files loaded: %s\n',filesLoaded{i});
-    end
+    % fprintf('ECG/PG Gating Information:\n');
+    % fprintf('    Time: %s\n',datetime('now'));
+    % fprintf('    Directory: %s\n',gatingDir);
+    % for i=1:length(filesLoaded)
+    %     fprintf('    Files loaded: %s\n',filesLoaded{i});
+    % end
     A1 = {'ECG/PG Gating Information';'Time';'Directory'};
     B1 = {'';datestr(datetime('now'));gatingDir};
     for i=1:length(filesLoaded)
@@ -572,17 +590,17 @@ function outputResults(datastruct,gatingDir,filesLoaded)
     withinLims = nansum(datastruct.bpm>lowerHR & datastruct.bpm<upperHR);
     RRs = datastruct.rr(~isnan(datastruct.rr));
     dRRs = diff(RRs);
-    fprintf('Error Estimation and Heart Rate Variability\n');
-    fprintf('    Total recorded heartbeats: %d beats.\n',totalRR);
-    fprintf('    Estimated missed heartbeats: %d beats (%2.2f%%).\n',numMissedFull,100*(numMissedFull/totalRR));
-    fprintf('    Estimated early triggers: %d beats (%2.2f%%).\n',numEarlyFull,100*(numEarlyFull/totalRR));
-    fprintf('    Total error: %2.2f%%.\n',100*((numEarlyFull+numMissedFull)/totalRR));
-    fprintf('    Total outliers: %2.2f%%.\n',100*(numOutliers/totalRR));
-    fprintf('    Percent data within mean HR +/- 5 BPM: %2.2f%%.\n',100*(withinLims/totalRR));
-    fprintf('    SDNN: %2.1f.\n',std(RRs));
-    fprintf('    RMSSD: %2.1f.\n',sqrt(mean(dRRs.^2)));
-    fprintf('    pNN50: %2.2f%%.\n',sum(abs(dRRs)>50)/length(dRRs)*100);
-    fprintf('   For info on SDNN, RMSSD, pNN50: pubmed.ncbi.nlm.nih.gov/29034226 \n\n');
+    % fprintf('Error Estimation and Heart Rate Variability\n');
+    % fprintf('    Total recorded heartbeats: %d beats.\n',totalRR);
+    % fprintf('    Estimated missed heartbeats: %d beats (%2.2f%%).\n',numMissedFull,100*(numMissedFull/totalRR));
+    % fprintf('    Estimated early triggers: %d beats (%2.2f%%).\n',numEarlyFull,100*(numEarlyFull/totalRR));
+    % fprintf('    Total error: %2.2f%%.\n',100*((numEarlyFull+numMissedFull)/totalRR));
+    % fprintf('    Total outliers: %2.2f%%.\n',100*(numOutliers/totalRR));
+    % fprintf('    Percent data within mean HR +/- 5 BPM: %2.2f%%.\n',100*(withinLims/totalRR));
+    % fprintf('    SDNN: %2.1f.\n',std(RRs));
+    % fprintf('    RMSSD: %2.1f.\n',sqrt(mean(dRRs.^2)));
+    % fprintf('    pNN50: %2.2f%%.\n',sum(abs(dRRs)>50)/length(dRRs)*100);
+    % fprintf('   For info on SDNN, RMSSD, pNN50: pubmed.ncbi.nlm.nih.gov/29034226 \n\n');
     A5 = {'';'Error Estimation';'Total recorded heartbeats';'Estimated missed heartbeats'; ...
         'Estimated early triggers';'Total error (%)';'Total outliers (%)'; ...
         'Data within mean HR +/- 5 BPM (%)';'SDNN';'RMSSD';'pNN50'};
@@ -596,10 +614,10 @@ function outputResults(datastruct,gatingDir,filesLoaded)
     sum_total = size(datastruct.ecg,1);
     lowBPM = datastruct.recon_rr > 2000;
     highBPM = datastruct.recon_rr < 500;
-    fprintf('PCVIPR Recon Output (may not match perfectly due to TR rounding)\n') 
-    fprintf('    Median RR is %d ms.\n',datastruct.recon_rr);
-    fprintf('    Expected heart rate is %7.4f bpm.\n',60000/datastruct.recon_rr);
-    fprintf('    Values within expected RR = %7.4f %%.\n\n',100*(sum_within/sum_total));
+    % fprintf('PCVIPR Recon Output (may not match perfectly due to TR rounding)\n') 
+    % fprintf('    Median RR is %d ms.\n',datastruct.recon_rr);
+    % fprintf('    Expected heart rate is %7.4f bpm.\n',60000/datastruct.recon_rr);
+    % fprintf('    Values within expected RR = %7.4f %%.\n\n',100*(sum_within/sum_total));
 
     A6 = {'';'PCVIPR Recon Output (may not match exactly due to TR rounding)'; ...
         'Median RR (ms)'; 'Expected heart rate (bpm)'; 'Values within expected RR (%)'};
@@ -608,16 +626,16 @@ function outputResults(datastruct,gatingDir,filesLoaded)
     
     lm = fitlm(datastruct.time/60000,datastruct.bpm);
     coefs = lm.Coefficients(2,:);
-    fprintf('Regression and Warnings\n');
-    fprintf('    RR linear fit slope (BPM/min) = %4.4f\n',coefs.Estimate(1));
-    fprintf('    p-value = %0.5f\n',coefs.pValue(1));
-    if lowBPM
-        fprintf('WARNING -- MEDIAN RR > 2000 (HR < 30 BPM)\n');
-    elseif highBPM
-        fprintf('WARNING -- MEDIAN RR < 500 (HR > 120 BPM)\n');
-    else
-        fprintf('NO WARNINGS');
-    end 
+    % fprintf('Regression and Warnings\n');
+    % fprintf('    RR linear fit slope (BPM/min) = %4.4f\n',coefs.Estimate(1));
+    % fprintf('    p-value = %0.5f\n',coefs.pValue(1));
+    % if lowBPM
+    %     fprintf('WARNING -- MEDIAN RR > 2000 (HR < 30 BPM)\n');
+    % elseif highBPM
+    %     fprintf('WARNING -- MEDIAN RR < 500 (HR > 120 BPM)\n');
+    % else
+    %     fprintf('NO WARNINGS');
+    % end 
     A7 = {''; 'RR linear fit slope (BPM/time)'; 'p-value'; ...
         'HR < 30 bpm?'; 'HR > 120 bpm?'};
     B7 = {''; coefs.Estimate(1); coefs.pValue(1); lowBPM; highBPM};

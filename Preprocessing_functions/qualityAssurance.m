@@ -47,15 +47,13 @@ disp('~~~~~~~~~~~~~~~~~~~ Ascending Aorta (Radial) ~~~~~~~~~~~~~~~~~~~')
 [rad_asc_exist, rad_asc] = checkExistence(life_folder, '*radial_AAo');
 if rad_asc_exist == 1
     cd(rad_asc)
-    disp("Checking gating data")
-    disp("Select raw_data folder. Return to this window once done")
-    importGating;
+    disp("Checking gating data. Return to this window once done.")
+    importGating_PWV("raw_data");
     disp("Press enter in command window when ready to move on")
     pause
     close all
     [standard_asc_exist, standard_asc] = checkExistence(fullfile(life_folder, rad_asc), '*standard*');
     if standard_asc_exist
-        
         rad_asc_data = loadRadial2DPC(fullfile(life_folder, rad_asc, standard_asc, 'dat'));
         disp("Press enter in command window when ready to move on")
         pause
@@ -68,9 +66,8 @@ disp('~~~~~~~~~~~~~~~~~~~ Abdominal Aorta (Radial) ~~~~~~~~~~~~~~~~~~~')
 [rad_abd_exist, rad_abd] = checkExistence(life_folder, '*radial_AbdAo');
 if rad_abd_exist == 1
     cd(rad_abd)
-    disp("Checking gating data")
-    disp("Select raw_data folder. Return to this window once done")
-    importGating;
+    disp("Checking gating data. Return to this window once done.")
+    importGating_PWV("raw_data");
     disp("Press enter in command window when ready to move on")
     pause
     close all
