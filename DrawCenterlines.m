@@ -22,7 +22,7 @@ function varargout = DrawCenterlines(varargin)
 
 % Edit the above text to modify the response to help DrawCenterlines
 
-% Last Modified by GUIDE v2.5 29-Oct-2023 21:39:12
+% Last Modified by GUIDE v2.5 06-Mar-2024 13:40:07
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -42,7 +42,7 @@ else
     gui_mainfcn(gui_State, varargin{:});
 end
 % End initialization code - DO NOT EDIT
-
+end
 
 
 % --- Executes just before DrawCenterlines is made visible.
@@ -55,20 +55,25 @@ set(handles.ImageSlider,'Enable','off');
 set(handles.MinContrastUpdate,'Enable','off'); 
 set(handles.MaxContrastUpdate,'Enable','off'); 
 set(handles.WhiteBoxReminder,'Visible','off');
-set(handles.ShowPlanesRadio,'Enable','off');
+set(handles.ShowCartPlanesRadio,'Enable','off');
+set(handles.ShowRadPlanesRadio,'Enable','off');
+set(handles.ShowSMSPlanesRadio,'Enable','off');
 handles.CurrView = 'Axial';
 handles.CurrCartesian = 1;
 handles.CurrRadial = 1;
-handles.SMS = 0;
+handles.CurrSMS = 1;
+handles.modality = 'cart';
 
 guidata(hObject, handles);
 % UIWAIT makes DrawCenterlines wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
+end
 
 
 % --- Outputs from this function are returned to the command line.
 function varargout = DrawCenterlines_OutputFcn(hObject, eventdata, handles) 
 varargout{1} = handles.output;
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -90,9 +95,12 @@ handles.axial = anatCLdataset.Axial;
 handles.sagittal = anatCLdataset.Sagittal;
 if isfield(anatCLdataset,'Cartesian2DPC')
     handles.cartesian = anatCLdataset.Cartesian2DPC;
-end 
+end
+if isfield(anatCLdataset,'Radial2DPC')
+    handles.radial = anatCLdataset.Radial2DPC;
+end
 if isfield(anatCLdataset,'RadialSMS')
-    handles.radial = anatCLdataset.RadialSMS;
+    handles.sms = anatCLdataset.RadialSMS;
 end 
 handles.Centerline = anatCLdataset.Centerline;
 updateAnatImages(handles)
@@ -127,55 +135,110 @@ alpha = 0.3;
 set(h,'MarkerEdgeAlpha',alpha,'MarkerFaceAlpha',alpha);
 legend('Location','southeast');
 
+set(handles.ShowCartPlanesRadio,'Enable','off','Value',1)
+set(handles.ShowRadPlanesRadio,'Enable','off','Value',1)
+set(handles.ShowSMSPlanesRadio,'Enable','off','Value',1)
+
 if isfield(anatCLdataset,'Cartesian2DPC')
     for t=1:length(handles.cartesian)
         POINTS = handles.cartesian(t).POINTS;
-        scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'k*', ...
+        scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'b*', ...
             'LineWidth',12, ...
             'DisplayName','Cart-2DPC');
         legend('Location','southeast','AutoUpdate','off');
     end
+    for t=1:length(handles.cartesian)
+        im = handles.cartesian(t).Images;
+        dim1 = size(im,1);
+        dim2 = size(im,2);
+        [x,y,z] = meshgrid(1:dim2,1:dim1,1:2);
+        rot = handles.cartesian(t).RotationMatrix;
+        row1 = nonzeros(rot(1,:));
+        row2 = nonzeros(rot(2,:));
+        row3 = nonzeros(rot(3,:));
+        X = x.*row1(1) + row1(2);
+        Y = y.*row2(1) + row2(2);
+        Z = z.*row3(1) + row3(2);
+        xslice = []; 
+        yslice = []; 
+        zslice = Z(1,1,1);
+        I = repmat(im,[1 1 2]);
+        Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
+        handles.Slices.cartesian = Slice;
+        shading interp; colormap gray; hold on;
+    end
+    set(handles.ShowCartPlanesRadio,'Enable','on','Value',1)
+end
+
+if isfield(anatCLdataset,'Radial2DPC')
+    for t=1:length(handles.radial)
+        POINTS = handles.radial(t).POINTS;
+        scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'y*', ...
+            'LineWidth',12, ...
+            'DisplayName','Rad-2DPC');
+        legend('Location','southeast','AutoUpdate','off');
+    end
+    for t=1:length(handles.radial)
+        % im = flipud(imresize(handles.radial(t).Images, 0.8906));
+        im = flipud(handles.radial(t).Images);
+        dim1 = size(im,1);
+        dim2 = size(im,2);
+        [x,y,z] = meshgrid(1:dim2,1:dim1,1:2);
+        rot = handles.radial(t).RotationMatrix;
+        row1 = nonzeros(rot(1,:));
+        row2 = nonzeros(rot(2,:));
+        row3 = nonzeros(rot(3,:));
+        X = x.*row1(1) + row1(2);
+        Y = y.*row2(1) + row2(2) - 35; % random 35 mm shift need to align images?
+        Z = z.*row3(1) + row3(2);
+        xslice = []; 
+        yslice = []; 
+        zslice = Z(1,1,1);
+        I = repmat(im,[1 1 2]);
+        Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
+        handles.Slices.radial = Slice;
+        shading interp; colormap gray; hold on;
+    end 
+    set(handles.ShowRadPlanesRadio,'Enable','on','Value',1)
 end
 
 if isfield(anatCLdataset,'RadialSMS')
-    for t=1:length(handles.radial)
-        POINTS = handles.radial(t).POINTS;
+    for t=1:length(handles.sms)
+        POINTS = handles.sms(t).POINTS;
         scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
             'LineWidth',12, ...
             'DisplayName','SMS-2DPC');
         legend('Location','southeast','AutoUpdate','off');
     end
+    for t=1:length(handles.sms)
+        im = flipud(handles.sms(t).Images);
+        dim1 = size(im,1);
+        dim2 = size(im,2);
+        [x,y,z] = meshgrid(1:dim2,1:dim1,1:2);
+        rot = handles.sms(t).RotationMatrix;
+        row1 = nonzeros(rot(1,:));
+        row2 = nonzeros(rot(2,:));
+        row3 = nonzeros(rot(3,:));
+        X = x.*row1(1) + row1(2);
+        Y = y.*row2(1) + row2(2);
+        Z = z.*row3(1) + row3(2);
+        xslice = []; 
+        yslice = []; 
+        zslice = Z(1,1,1);
+        I = repmat(im,[1 1 2]);
+        Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
+        handles.Slices.sms = Slice;
+        shading interp; colormap gray; hold on;
+    end
+    set(handles.ShowSMSPlanesRadio,'Enable','on','Value',1)
 end
 
 splineLine = handles.Centerline;
 axes(handles.CenterlineDisplay);
-plot3(splineLine(:,1),splineLine(:,2),splineLine(:,3),'g','LineWidth',5);
+plot3(splineLine(:,1),splineLine(:,2),splineLine(:,3),'g','LineWidth',5, 'DisplayName', 'Centerline');
 
-
-for t=1:length(handles.cartesian)
-    im = handles.cartesian(t).Images;
-    dim1 = size(im,1);
-    dim2 = size(im,2);
-    [x,y,z] = meshgrid(1:dim1,1:dim2,1:2);
-    rot = handles.cartesian(t).RotationMatrix;
-    row1 = nonzeros(rot(1,:));
-    row2 = nonzeros(rot(2,:));
-    row3 = nonzeros(rot(3,:));
-    X = x.*row1(1) + row1(2);
-    Y = y.*row2(1) + row2(2);
-    Z = z.*row3(1) + row3(2);
-    xslice = []; 
-    yslice = []; 
-    zslice = Z(1,1,1);
-    I = repmat(im,[1 1 2]);
-    Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
-    handles.Slices = Slice;
-    shading interp; colormap gray; hold on;
-end 
-
-set(handles.ShowPlanesRadio,'Enable','on','Value',1)
 guidata(hObject, handles);
-
+end
 
 % --- Executes on button press in LoadAxialPush.
 function LoadAxialPush_Callback(hObject, eventdata, handles)
@@ -214,8 +277,7 @@ set(handles.UpdateAxial,'String','Axial Data Loaded');
 updateAnatImages(handles)
 
 guidata(hObject, handles);
-
-
+end
 
 % --- Executes on button press in SegAxialPush.
 function SegAxialPush_Callback(hObject, eventdata, handles)
@@ -276,7 +338,7 @@ set(handles.MinContrastUpdate,'Enable','on');
 set(handles.MaxContrastUpdate,'Enable','on'); 
 set(handles.WhiteBoxReminder,'Visible','off');
 guidata(hObject, handles);
-
+end
 
 
 % % --- Executes on button press in LoadCoronalPush.
@@ -315,9 +377,9 @@ guidata(hObject, handles);
 % updateAnatImages(handles)
 % 
 % guidata(hObject, handles);
-% 
-% 
-% 
+% end
+
+
 % % --- Executes on button press in SegCoronalPush.
 % function SegCoronalPush_Callback(hObject, eventdata, handles)
 % set(handles.ImageSlider,'Enable','off'); 
@@ -374,7 +436,7 @@ guidata(hObject, handles);
 % set(handles.MaxContrastUpdate,'Enable','on'); 
 % set(handles.WhiteBoxReminder,'Visible','off');
 % guidata(hObject, handles);
-
+% end
 
 
 % --- Executes on button press in LoadSagittalPush.
@@ -414,7 +476,7 @@ set(handles.UpdateSagittal,'String','Sagittal Data Loaded');
 updateAnatImages(handles)
 
 guidata(hObject, handles);
-
+end
 
 
 % --- Executes on button press in SegSagittalPush.
@@ -473,13 +535,13 @@ set(handles.MinContrastUpdate,'Enable','on');
 set(handles.MaxContrastUpdate,'Enable','on'); 
 set(handles.WhiteBoxReminder,'Visible','off');
 guidata(hObject, handles);
-
+end
 
 
 % --- Executes on button press in Seg2DCartPush.
 function Seg2DCartPush_Callback(hObject, eventdata, handles)
 handles.CurrView = '2DCartesian';
-handles.SMS = 0;
+handles.modality = 'cart';
 cartIter = handles.CurrCartesian;
 % [anatomicalFile, anatomicalDir] = uigetfile({'*.dcm;*.dicom;','Useable Files (*.dcm,*.dicom)';
 %    '*.dcm',  'DICOM files (*.dcm)'; ...
@@ -511,7 +573,6 @@ yVector = [yVector;0];
 handles.cartesian(cartIter).RotationMatrix = ...
 [xres*xVector yres*yVector zres*zVector originShift]; % turn vectors into matrices
 
-
 axes(handles.AnatDisplay); %force axes to anatomical plot
 
 rot = handles.cartesian(cartIter).RotationMatrix;
@@ -532,28 +593,28 @@ POINTS(4,:) = [];
 handles.cartesian(cartIter).points = points;
 handles.cartesian(cartIter).POINTS = POINTS;
 axes(handles.CenterlineDisplay); hold on;
-scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
+scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'b*', ...
     'LineWidth',4, ...
-    'DisplayName','SMS-2DPC');
+    'DisplayName','Cartesian');
 legend('Location','southeast','AutoUpdate','off');
 
 handles.CurrCartesian = cartIter + 1;
 guidata(hObject, handles);
+end
 
 
-% --- Executes on button press in Seg2DRadialPush.
+% --- Executes on button press in SegSMSPush.
 function Seg2DRadialPush_Callback(hObject, eventdata, handles)
 handles.CurrView = '2DRadial';
-handles.SMS = 1;
+handles.modality = 'rad';
 radIter = handles.CurrRadial;
 
-[hdf5File, hdf5Dir] = uigetfile({'*.h5','Useable Files (*.h5)';
-   '*.h5',  'HDF5 files (*.h5)'; ...
-   '*.*',  'All Files (*.*)'}, 'Select the AAo.h5 or AbdAo.h5 file');
-hdf5Info = h5info(fullfile(hdf5Dir,hdf5File));
-imageDim = hdf5Info.Datasets(4).Dataspace.Size;
+% [pcFile, pcDir] = uigetfile({'*.dat','Useable Files (*.dat)';
+%        '*.dat',  'DAT-files (*.dat)'; ...
+%        '*.*',    'All Files (*.*)'}, 'Select ONE 2DPC file in the dataset');
+pcDir = uigetdir();
 
-fid = fopen([hdf5Dir 'pcvipr_header.txt'], 'r'); %open header
+fid = fopen([pcDir filesep 'pcvipr_header.txt'], 'r'); %open header
 dataArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
     'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
 fclose(fid);
@@ -561,10 +622,12 @@ dataArray{1,2} = cellfun(@str2num,dataArray{1,2}(:),'UniformOutput',false);
 pcviprHeader = cell2struct(dataArray{1,2}(:),dataArray{1,1}(:),1); %turn to structure
 handles.radial(radIter).Info = pcviprHeader; %add pcvipr header to handles
 
-mag = h5read(fullfile(hdf5Dir,hdf5File),'/MAG');
-% MAG = mean(mag, 3);
-MAG = flipud(mean(mag,3));
-% MAG = fliplr(mean(MAG,3));
+resx = pcviprHeader.matrixx; %resolution in x
+resy = pcviprHeader.matrixy; %resolution in y
+
+MAG = load_dat(fullfile(pcDir,'MAG.dat'),[resx resy]); %Average magnitude
+MAG = flipud(imresize(MAG, 0.8906));
+% MAG = flipud(MAG);
 handles.radial(radIter).Images = rescale(MAG);
 
 ix = pcviprHeader.ix;
@@ -580,13 +643,6 @@ sx = pcviprHeader.sx;
 sy = pcviprHeader.sy;
 sz = pcviprHeader.sz;
 
-SMS_gap = 78;
-% SMS_gap = 90; %180mm about sz
-if contains(hdf5File,'AAo')
-    sz = sz + SMS_gap;
-else
-    sz = sz - SMS_gap;
-end 
 originShift = [sx; sy; sz; 1];
 % originShift = [0; 0; sz; 1];
 
@@ -603,7 +659,105 @@ rot = handles.radial(radIter).RotationMatrix;
 minc = str2double(get(handles.MinContrastUpdate,'String'));
 maxc = str2double(get(handles.MaxContrastUpdate,'String'));
 
-imshow(handles.radial(radIter).Images,[minc maxc]);
+% imshow(flipud(imresize(handles.radial(radIter).Images, 0.8906)),[minc maxc]);
+imshow(handles.radial(radIter).Images, [minc maxc]);
+[y,x] = getpts(); %draw points on image along aorta
+x = pcviprHeader.matrixx - x;
+% y = pcviprHeader.matrixy - y;
+% x = imageDim(2) - x;
+% y = imageDim(1) - y;
+z = (ones(size(x,1),1)); %add z-coordinates for slice
+dummy = ones(size(x));
+points = [x, y, z, dummy]';
+
+for j=1:size(points,2)
+    POINTS(:,j) = rot*points(:,j);
+    % POINTS(2,j) = -POINTS(2,j);
+end
+axes(handles.CenterlineDisplay); hold on;
+scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
+    'LineWidth',12,'DisplayName','Rad-2DPC');
+legend('Location','southeast', 'AutoUpdate','on');
+
+points(4,:) = [];
+POINTS(4,:) = [];
+handles.radial(radIter).points = points;
+handles.radial(radIter).POINTS = POINTS;
+handles.CurrRadial = radIter + 1;
+guidata(hObject, handles);
+end
+
+
+% --- Executes on button press in SegSMSPush.
+function SegSMSPush_Callback(hObject, eventdata, handles)
+handles.CurrView = '2DSMS';
+handles.modality = 'sms';
+smsIter = handles.CurrSMS;
+
+[hdf5File, hdf5Dir] = uigetfile({'*.h5','Useable Files (*.h5)';
+   '*.h5',  'HDF5 files (*.h5)'; ...
+   '*.*',  'All Files (*.*)'}, 'Select the AAo.h5 or AbdAo.h5 file');
+hdf5Info = h5info(fullfile(hdf5Dir,hdf5File));
+imageDim = hdf5Info.Datasets(4).Dataspace.Size;
+
+fid = fopen([hdf5Dir 'pcvipr_header.txt'], 'r'); %open header
+dataArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
+    'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
+fclose(fid);
+dataArray{1,2} = cellfun(@str2num,dataArray{1,2}(:),'UniformOutput',false);
+pcviprHeader = cell2struct(dataArray{1,2}(:),dataArray{1,1}(:),1); %turn to structure
+handles.sms(smsIter).Info = pcviprHeader; %add pcvipr header to handles
+
+mag = h5read(fullfile(hdf5Dir,hdf5File),'/MAG');
+% MAG = mean(mag, 3);
+MAG = flipud(mean(mag,3));
+% MAG = fliplr(mean(MAG,3));
+handles.sms(smsIter).Images = rescale(MAG);
+
+ix = pcviprHeader.ix;
+iy = pcviprHeader.iy;
+iz = pcviprHeader.iz;
+jx = pcviprHeader.jx;
+jy = pcviprHeader.jy;
+jz = pcviprHeader.jz;
+kx = pcviprHeader.kx;
+ky = pcviprHeader.ky;
+kz = pcviprHeader.kz;
+sx = pcviprHeader.sx;
+sy = pcviprHeader.sy;
+sz = pcviprHeader.sz;
+
+try
+    fid = fopen([hdf5Dir 'sms_fov.txt'], 'r');
+    SMS_fov = fscanf(fid, '%f');
+    fclose(fid);
+    SMS_gap = SMS_fov/4;
+catch
+    SMS_gap = 78;
+end
+% SMS_gap = 90; %180mm about sz
+if contains(hdf5File,'AAo')
+    sz = sz + SMS_gap;
+else
+    sz = sz - SMS_gap;
+end 
+originShift = [sx; sy; sz; 1];
+% originShift = [0; 0; sz; 1];
+
+xVector = round([ix;iy;iz;0],8); % what direction rows run w/r/to x
+yVector = round([jx;jy;jz;0],8); % what direction the cols run w/r/to y
+zVector = round([kx;ky;kz;0],8); % what direction the cols run w/r/to z
+
+handles.sms(smsIter).RotationMatrix = [xVector yVector zVector originShift];
+% handles.sms(smsIter).RotationMatrix = [[0;0;0;0] [0;0;0;0] [0;0;0;0] [0;0;0;0]];
+
+axes(handles.AnatDisplay); %force axes to anatomical plot
+rot = handles.sms(smsIter).RotationMatrix;
+% disp(rot)
+minc = str2double(get(handles.MinContrastUpdate,'String'));
+maxc = str2double(get(handles.MaxContrastUpdate,'String'));
+
+imshow(handles.sms(smsIter).Images,[minc maxc]);
 [y,x] = getpts(); %draw points on image along aorta
 x = pcviprHeader.matrixx - x;
 % y = pcviprHeader.matrixy - y;
@@ -640,59 +794,41 @@ points = [x, y, z, dummy]';
 % end
 % disp(shift)
 
-
 for j=1:size(points,2)
     POINTS(:,j) = rot*points(:,j);
     % POINTS(2,j) = -POINTS(2,j);
 end
 axes(handles.CenterlineDisplay); hold on;
-scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
-    'LineWidth',12,'DisplayName','Rad-2DPC');
+scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'y*', ...
+    'LineWidth',12,'DisplayName','SMS-2DPC');
 legend('Location','southeast', 'AutoUpdate','on');
 
 points(4,:) = [];
 POINTS(4,:) = [];
-handles.radial(radIter).points = points;
-handles.radial(radIter).POINTS = POINTS;
-handles.CurrRadial = radIter + 1;
+handles.sms(smsIter).points = points;
+handles.sms(smsIter).POINTS = POINTS;
+handles.CurrSMS = smsIter + 1;
 guidata(hObject, handles);
-
-
-
-% --- Executes on button press in MinContrastUpdate.
-function MinContrastUpdate_Callback(hObject, eventdata, handles)
-updateAnatImages(handles)
-
-% --- Executes during object creation, after setting all properties.
-function MinContrastUpdate_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
 end
-
-% --- Executes on button press in MaxContrastUpdate.
-function MaxContrastUpdate_Callback(hObject, eventdata, handles)
-updateAnatImages(handles)
-
-% --- Executes during object creation, after setting all properties.
-function MaxContrastUpdate_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
 
 
 % --- Executes on button press in CreateCenterlinePush.
 function CreateCenterlinePush_Callback(hObject, eventdata, handles)
-PC = [];
-if handles.SMS
-    for p=1:length(handles.radial)
-        PC = [PC handles.radial(p).POINTS];
-    end 
-else
-    for p=1:length(handles.cartesian)
-        PC = [PC handles.cartesian(p).POINTS];
-    end 
-end 
+    PC = [];
+    switch handles.modality
+        case 'cart'
+            for p=1:length(handles.cartesian)
+                PC = [PC handles.cartesian(p).POINTS];
+            end
+        case 'rad'
+            for p=1:length(handles.radial)
+                PC = [PC handles.radial(p).POINTS];
+            end 
+        case 'sms'
+            for p=1:length(handles.sms)
+                PC = [PC handles.sms(p).POINTS];
+            end 
+    end
 
 %scatter(handles.coronal.POINTS(1,:),handles.coronal.POINTS(3,:),'b'); hold on;
 %scatter(handles.sagittal.POINTS(1,:),handles.sagittal.POINTS(3,:),'b');
@@ -747,53 +883,79 @@ zSum = sum(abs(splineLine(:,3)));
 
 axes(handles.CenterlineDisplay);
 plot3(splineLine(:,1),splineLine(:,2),splineLine(:,3),'g','LineWidth',5);
-if handles.SMS
-    for t=1:length(handles.radial)
-        im = handles.radial(t).Images;
-        dim1 = size(im,1);
-        dim2 = size(im,2);
-        [x,y,z] = meshgrid(1:dim1,1:dim2,1:2);
-        rot = handles.radial(t).RotationMatrix;
-        row1 = nonzeros(rot(1,:));
-        row2 = nonzeros(rot(2,:));
-        row3 = nonzeros(rot(3,:));
-        X = x.*row1(1) + row1(2);
-        Y = y.*row2(1) + row2(2);
-        Z = z.*row3(1) + row3(2);
-        xslice = []; 
-        yslice = []; 
-        zslice = Z(1,1,1);
-        I = repmat(im,[1 1 2]);
-        Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
-        handles.Slices = Slice;
-        shading interp; colormap gray; hold on;
-    end 
-else
-    for t=1:length(handles.cartesian)
-        im = handles.cartesian(t).Images;
-        dim1 = size(im,1);
-        dim2 = size(im,2);
-        [x,y,z] = meshgrid(1:dim1,1:dim2,1:2);
-        rot = handles.cartesian(t).RotationMatrix;
-        row1 = nonzeros(rot(1,:));
-        row2 = nonzeros(rot(2,:));
-        row3 = nonzeros(rot(3,:));
-        X = x.*row1(1) + row1(2);
-        Y = y.*row2(1) + row2(2);
-        Z = z.*row3(1) + row3(2);
-        xslice = []; 
-        yslice = []; 
-        zslice = Z(1,1,1);
-        I = repmat(im,[1 1 2]);
-        Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
-        handles.Slices = Slice;
-        shading interp; colormap gray; hold on;
-    end 
+switch handles.modality
+    case 'cart'
+        for t=1:length(handles.cartesian)
+            im = handles.cartesian(t).Images;
+            dim1 = size(im,1);
+            dim2 = size(im,2);
+            [x,y,z] = meshgrid(1:dim2,1:dim1,1:2);
+            rot = handles.cartesian(t).RotationMatrix;
+            row1 = nonzeros(rot(1,:));
+            row2 = nonzeros(rot(2,:));
+            row3 = nonzeros(rot(3,:));
+            X = x.*row1(1) + row1(2);
+            Y = y.*row2(1) + row2(2);
+            Z = z.*row3(1) + row3(2);
+            xslice = []; 
+            yslice = []; 
+            zslice = Z(1,1,1);
+            I = repmat(im,[1 1 2]);
+            Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
+            handles.Slices.cartesian = Slice;
+            shading interp; colormap gray; hold on;
+        end
+        set(handles.ShowCartPlanesRadio,'Enable','on','Value',1)
+    case 'rad'
+        for t=1:length(handles.radial)
+            im = flipud(handles.radial(t).Images);
+            % im = imresize(handles.radial(t).Images, 0.8906);
+            dim1 = size(im,1);
+            dim2 = size(im,2);
+            [x,y,z] = meshgrid(1:dim2,1:dim1,1:2);
+            rot = handles.radial(t).RotationMatrix;
+            row1 = nonzeros(rot(1,:));
+            row2 = nonzeros(rot(2,:));
+            row3 = nonzeros(rot(3,:));
+            X = x.*row1(1) + row1(2);
+            Y = y.*row2(1) + row2(2) - 35; % random 35 mm shift need to align images?
+            Z = z.*row3(1) + row3(2);
+            xslice = []; 
+            yslice = []; 
+            zslice = Z(1,1,1);
+            I = repmat(im,[1 1 2]);
+            Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
+            handles.Slices.radial = Slice;
+            shading interp; colormap gray; hold on;
+        end
+        set(handles.ShowRadPlanesRadio,'Enable','on','Value',1)
+    case 'sms'
+        for t=1:length(handles.sms)
+            im = flipud(handles.sms(t).Images);
+            dim1 = size(im,1);
+            dim2 = size(im,2);
+            [x,y,z] = meshgrid(1:dim2,1:dim1,1:2);
+            rot = handles.sms(t).RotationMatrix;
+            row1 = nonzeros(rot(1,:));
+            row2 = nonzeros(rot(2,:));
+            row3 = nonzeros(rot(3,:));
+            X = x.*row1(1) + row1(2);
+            Y = y.*row2(1) + row2(2);
+            Z = z.*row3(1) + row3(2);
+            xslice = []; 
+            yslice = []; 
+            zslice = Z(1,1,1);
+            I = repmat(im,[1 1 2]);
+            Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
+            handles.Slices.sms = Slice;
+            shading interp; colormap gray; hold on;
+        end
+        set(handles.ShowSMSPlanesRadio,'Enable','on','Value',1)
 end 
 
-set(handles.ShowPlanesRadio,'Enable','on','Value',1)
 handles.Centerline = splineLine;
 guidata(hObject, handles);
+end
 
 
 % --- Executes on button press in SaveCenterlinePush.
@@ -802,14 +964,19 @@ initials = inputdlg("Please type in your initials");
 date = string(datetime('now', 'Format', 'yyyy-MM-dd-HHmm'));
 centerline = handles.Centerline;
 PC = [];
-if handles.SMS
-    for p=1:length(handles.radial)
-        PC = [PC handles.radial(p).POINTS];
-    end 
-else
-    for p=1:length(handles.cartesian)
-        PC = [PC handles.cartesian(p).POINTS];
-    end 
+switch handles.modality
+    case 'cart'
+        for p=1:length(handles.cartesian)
+            PC = [PC handles.cartesian(p).POINTS];
+        end
+    case 'rad'
+        for p=1:length(handles.radial)
+            PC = [PC handles.radial(p).POINTS];
+        end 
+    case 'sms'
+        for p=1:length(handles.sms)
+            PC = [PC handles.sms(p).POINTS];
+        end 
 end 
 
 for r=1:size(PC,2)
@@ -837,116 +1004,66 @@ anatCLdataset.Axial = handles.axial;
 anatCLdataset.Sagittal = handles.sagittal;
 if isfield(handles,'cartesian')
     anatCLdataset.Cartesian2DPC = handles.cartesian;
-end 
+end
 if isfield(handles,'radial')
-    anatCLdataset.RadialSMS = handles.radial;
+    anatCLdataset.Radial2DPC = handles.radial;
+end
+if isfield(handles,'sms')
+    anatCLdataset.RadialSMS = handles.sms;
 end 
+ 
 anatCLdataset.Centerline = centerline;
 anatCLdataset.Distances = distances;
 anatCLdataset.ROIindices = IDX;
 anatCLdataset.PlaneDistances = PlaneDistances;
 directory = uigetdir(); %saving location
-centerline_folder = strcat(directory, filesep, 'CenterlineData_', date, "_", initials{1});
+switch handles.modality
+    case 'cart'
+        centerline_folder = strcat(directory, filesep, 'CenterlineData_Cart_', date, "_", initials{1});
+    case 'rad'
+        centerline_folder = strcat(directory, filesep, 'CenterlineData_Rad_', date, "_", initials{1});
+    case 'sms'
+        centerline_folder = strcat(directory, filesep, 'CenterlineData_SMS_', date, "_", initials{1});
+end
 disp(centerline_folder)
 if ~exist(centerline_folder, "dir")
     mkdir(centerline_folder);
 end
-if handles.SMS
-    save(strcat(directory, filesep, 'anatCLdataset_SMS_', date, "_", initials{1}, '.mat'),'anatCLdataset');
-else
-    save(strcat(directory, filesep, 'anatCLdataset_', date, "_", initials{1}, '.mat'),'anatCLdataset');
+switch handles.modality
+    case 'cart'
+        save(strcat(directory, filesep, 'anatCLdataset_Cart_', date, "_", initials{1}, '.mat'),'anatCLdataset');
+        frame = getframe(handles.CenterlineDisplay);
+        imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'Centerline3D_Cart.png'));
+        frame = getframe(handles.TraceCoronal);
+        imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'CoronalTrace_Cart.png'));
+        frame = getframe(handles.TraceSagittal);
+        imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'SagittalTrace_Cart.png'));
+    case 'rad'
+        save(strcat(directory, filesep, 'anatCLdataset_Rad_', date, "_", initials{1}, '.mat'),'anatCLdataset');
+        frame = getframe(handles.CenterlineDisplay);
+        imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'Centerline3D_Rad.png'));
+        frame = getframe(handles.TraceCoronal);
+        imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'CoronalTrace_Rad.png'));
+        frame = getframe(handles.TraceSagittal);
+        imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'SagittalTrace_Rad.png'));
+    case 'sms'
+        save(strcat(directory, filesep, 'anatCLdataset_SMS_', date, "_", initials{1}, '.mat'),'anatCLdataset');
+        frame = getframe(handles.CenterlineDisplay);
+        imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'Centerline3D_SMS.png'));
+        frame = getframe(handles.TraceCoronal);
+        imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'CoronalTrace_SMS.png'));
+        frame = getframe(handles.TraceSagittal);
+        imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'SagittalTrace_SMS.png'));
 end 
 % disp(handles.TraceCoronal)
 % disp(handles.TraceSagittal)
-if handles.SMS
-    frame = getframe(handles.CenterlineDisplay);
-    imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'Centerline3D_SMS.png'));
-    frame = getframe(handles.TraceCoronal);
-    imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'CoronalTrace_SMS.png'));
-    frame = getframe(handles.TraceSagittal);
-    imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'SagittalTrace_SMS.png'));
-else
-    frame = getframe(handles.CenterlineDisplay);
-    imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'Centerline3D.png'));
-    frame = getframe(handles.TraceCoronal);
-    imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'CoronalTrace.png'));
-    frame = getframe(handles.TraceSagittal);
-    imwrite(frame2im(frame),strcat(centerline_folder, filesep, 'SagittalTrace.png'));
-end 
 
 close(handles.TraceCoronal)
 close(handles.TraceSagittal)
 set(handles.SaveText,'String','Centerline Saved!');
-
-
-
-% --- Executes on slider movement.
-function ImageSlider_Callback(hObject, eventdata, handles)
-updateAnatImages(handles)
-
-% --- Executes during object creation, after setting all properties.
-function ImageSlider_CreateFcn(hObject, eventdata, handles)
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
 
-
-
-% --- Executes on button press in ShowPlanesRadio.
-function ShowPlanesRadio_Callback(hObject, eventdata, handles)
-if get(handles.ShowPlanesRadio,'Value')==1
-    Slices = handles.Slices;
-    for t=1:length(Slices)
-        axes(handles.CenterlineDisplay);
-        set(Slices(t),'visible','on');
-    end 
-else
-    Slices = handles.Slices;
-    for t=1:length(Slices)
-        axes(handles.CenterlineDisplay);
-        set(Slices(t),'visible','off');
-    end 
-end 
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% --- Update Images in ANATOMICAL PLOT
-function updateAnatImages(handles)
-    axes(handles.AnatDisplay); %force axes to anatomical plot
-    
-    switch handles.CurrView
-        case 'Axial'
-            images = handles.axial.Images;
-        %case 'Coronal'
-            %images = handles.coronal.Images;
-        case 'Sagittal'
-            images = handles.sagittal.Images;
-        case '2DCartesian'
-            images = handles.cartesian.Images;
-        case '2DRadial'
-            images = handles.radial.Images;
-    end 
-    
-    minc = str2double(get(handles.MinContrastUpdate,'String'));
-    maxc = str2double(get(handles.MaxContrastUpdate,'String'));
-
-    if ndims(images)<3 %if we only have one image (should rarely happen)
-        maxSize = max(size(images,1),size(images,2));
-        steps = [1 maxSize]; %set our slider to as wide as possible 
-        set(handles.ImageSlider,'SliderStep', steps);
-        anatSlice = images;
-    else
-        dim3size = size(images,3);
-        steps = [1/(dim3size-1) 10/(dim3size-1)];
-        set(handles.ImageSlider,'SliderStep', steps);
-        sliceNum = 1+round( get(handles.ImageSlider,'Value').*(dim3size-1) );  %get slice number from slider
-        anatSlice = images(:,:,sliceNum); %get slice from images
-    end 
-    imshow(anatSlice,[minc maxc]); %show image
-return
-    
-
 
 % --- Turn PolyLine into SplineLine    
 function Y = interppolygon(X,N)
@@ -967,19 +1084,137 @@ function Y = interppolygon(X,N)
     interpMetric = (0:(1/(N-1)):1)';
     Y = interp1(origMetric,X,interpMetric,'makima'); %makima seems to work well
     %Y = csaps([0 times times(end)+times(1)],[0 meanROI 0],0.0001,timesInterp);
-return
-
-
-
-function v = load_dat(name, matrix)
-[fid,errmsg]= fopen(name,'r');
-if fid < 0  % If name does not exist in directory
-    disp(['Error Opening Data : ',errmsg]);
 end
 
-% Reads in as short, reshapes by image resolution (i.e. 320x320x320)
-v = reshape(fread(fid,'short=>single'),matrix);
-fclose(fid);
+% --- Loads dat files for radial scan
+function v = load_dat(name, matrix)
+    [fid,errmsg]= fopen(name,'r');
+    if fid < 0  % If name does not exist in directory
+        disp(['Error Opening Data : ',errmsg]);
+    end
+    
+    % Reads in as short, reshapes by image resolution (i.e. 320x320x320)
+    v = reshape(fread(fid,'short=>single'),matrix);
+    fclose(fid);
+end
 
-return
+% --- Update Images in ANATOMICAL PLOT
+function updateAnatImages(handles)
+    axes(handles.AnatDisplay); %force axes to anatomical plot
+    
+    switch handles.CurrView
+        case 'Axial'
+            images = handles.axial.Images;
+        %case 'Coronal'
+            %images = handles.coronal.Images;
+        case 'Sagittal'
+            images = handles.sagittal.Images;
+        case '2DCartesian'
+            images = handles.cartesian.Images;
+        case '2DRadial'
+            images = handles.radial.Images;
+        case '2DSMS'
+            images = handles.sms.Images;
+    end 
+    
+    minc = str2double(get(handles.MinContrastUpdate,'String'));
+    maxc = str2double(get(handles.MaxContrastUpdate,'String'));
 
+    if ndims(images)<3 %if we only have one image (should rarely happen)
+        maxSize = max(size(images,1),size(images,2));
+        steps = [1 maxSize]; %set our slider to as wide as possible 
+        set(handles.ImageSlider,'SliderStep', steps);
+        anatSlice = images;
+    else
+        dim3size = size(images,3);
+        steps = [1/(dim3size-1) 10/(dim3size-1)];
+        set(handles.ImageSlider,'SliderStep', steps);
+        sliceNum = 1+round( get(handles.ImageSlider,'Value').*(dim3size-1) );  %get slice number from slider
+        anatSlice = images(:,:,sliceNum); %get slice from images
+    end 
+    imshow(anatSlice,[minc maxc]); %show image
+end
+
+% --- Executes on button press in ShowCartPlanesRadio.
+function ShowCartPlanesRadio_Callback(hObject, eventdata, handles)
+    Slices = handles.Slices.cartesian;
+    if get(handles.ShowCartPlanesRadio,'Value')==1
+        for t=1:length(Slices)
+            axes(handles.CenterlineDisplay);
+            set(Slices(t),'visible','on');
+        end 
+    else
+        for t=1:length(Slices)
+            axes(handles.CenterlineDisplay);
+            set(Slices(t),'visible','off');
+        end 
+    end 
+end
+
+% --- Executes on button press in ShowRadPlanesRadio.
+function ShowRadPlanesRadio_Callback(hObject, eventdata, handles)
+    Slices = handles.Slices.radial;
+    if get(handles.ShowRadPlanesRadio,'Value')==1
+        for t=1:length(Slices)
+            axes(handles.CenterlineDisplay);
+            set(Slices(t),'visible','on');
+        end 
+    else
+        for t=1:length(Slices)
+            axes(handles.CenterlineDisplay);
+            set(Slices(t),'visible','off');
+        end 
+    end 
+end
+
+% --- Executes on button press in ShowSMSPlanesRadio.
+function ShowSMSPlanesRadio_Callback(hObject, eventdata, handles)
+    Slices = handles.Slices.sms;
+    if get(handles.ShowSMSPlanesRadio,'Value')==1
+        for t=1:length(Slices)
+            axes(handles.CenterlineDisplay);
+            set(Slices(t),'visible','on');
+        end 
+    else
+        for t=1:length(Slices)
+            axes(handles.CenterlineDisplay);
+            set(Slices(t),'visible','off');
+        end 
+    end 
+end
+
+% --- Executes on button press in MinContrastUpdate.
+function MinContrastUpdate_Callback(hObject, eventdata, handles)
+    updateAnatImages(handles)
+end
+
+% --- Executes during object creation, after setting all properties.
+function MinContrastUpdate_CreateFcn(hObject, eventdata, handles)
+    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor','white');
+    end
+end
+
+% --- Executes on button press in MaxContrastUpdate.
+function MaxContrastUpdate_Callback(hObject, eventdata, handles)
+    updateAnatImages(handles)
+end
+
+% --- Executes during object creation, after setting all properties.
+function MaxContrastUpdate_CreateFcn(hObject, eventdata, handles)
+    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor','white');
+    end
+end
+
+% --- Executes on slider movement.
+function ImageSlider_Callback(hObject, eventdata, handles)
+    updateAnatImages(handles)
+end
+
+% --- Executes during object creation, after setting all properties.
+function ImageSlider_CreateFcn(hObject, eventdata, handles)
+    if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor',[.9 .9 .9]);
+    end
+end

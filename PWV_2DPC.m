@@ -1437,7 +1437,56 @@ function v = load_dat(name, res)
     fclose(fid);
 
 
-
+function [BW, centers, radii, radrange, sens] = circleFinder(image, num_roi, radrange, sens)
+    BW = false(size(image,1),size(image,2));
+    [Xgrid,Ygrid] = meshgrid(1:size(BW,2),1:size(BW,1));
+    flag = 0;
+    mflag = 0;
+    while ~flag
+        g = figure;
+        imshow(image, []);
+        movegui(g, 'onscreen');
+        [centers,radii,~] = imfindcircles(image,radrange,'ObjectPolarity','bright','Sensitivity',sens);
+        for n = 1:num_roi
+            try
+                BW = BW | (hypot(Xgrid-centers(n,1),Ygrid-centers(n,2)) <= radii(n));
+            catch error
+                
+            end
+        end
+        viscircles(centers, radii);
+        options.WindowStyle = 'normal';
+        answer = inputdlg({"Enter lower radius range:", "Enter upper radius range:", "Enter sensitivity:", "Draw manually? (enter 1)", "Accept? (enter 1)"}, ...
+            "Circle Estimation Parameters", [1 30; 1 30; 1 30; 1 30; 1 30;], {num2str(radrange(1)), num2str(radrange(2)), ...
+            num2str(sens), num2str(mflag), num2str(flag)}, options);
+        close(g)
+        radrange = [str2num(answer{1}) str2num(answer{2})];
+        sens = str2double(answer{3});
+        mflag = str2num(answer{4});
+        flag = str2num(answer{5});
+        if mflag
+            centers = zeros(num_roi, 2);
+            radii = zeros(num_roi, 1);
+            for z=1:num_roi
+                k = figure; 
+                imshow(image, []);
+                circle = drawcircle();
+                radii(z) = circle.Radius; %get radius of circle
+                centers(z,:) = round(circle.Center); %get center coordinates
+                close(k);
+                BW = BW | (hypot(Xgrid-centers(n,1),Ygrid-centers(n,2)) <= radii(n));
+            end
+            flag = 1;
+        end
+        if flag
+            if size(centers, 1) ~= num_roi
+                fprintf("Error: Number of ROIs is greater than or less than %d.\n" + ...
+                    "Please continue adjusting parameters\n", num_roi);
+                flag = 0;
+            end
+        end
+    end
+end
 
 
 
