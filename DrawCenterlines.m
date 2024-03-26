@@ -22,7 +22,7 @@ function varargout = DrawCenterlines(varargin)
 
 % Edit the above text to modify the response to help DrawCenterlines
 
-% Last Modified by GUIDE v2.5 06-Mar-2024 13:40:07
+% Last Modified by GUIDE v2.5 25-Mar-2024 18:15:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -64,6 +64,10 @@ handles.CurrRadial = 1;
 handles.CurrSMS = 1;
 handles.modality = 'cart';
 
+SS{1} = 'Starting DrawCenterlines';
+set(handles.Logbox,'String',SS);
+set(handles.Logbox,'Value',numel(SS));
+
 guidata(hObject, handles);
 % UIWAIT makes DrawCenterlines wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -86,6 +90,8 @@ set(handles.MinContrastUpdate,'Enable','on');
 set(handles.MaxContrastUpdate,'Enable','on'); 
 set(handles.WhiteBoxReminder,'Visible','off');
 
+updateLog(handles, "Loading centerline...");
+
 [clFile, clDir] = uigetfile({'*.mat','Useable Files (*.mat)';
    '*.mat',  'MATLAB files (*.mat)'; ...
    '*.*',  'All Files (*.*)'}, 'Select "anatCLdataset.mat" file');
@@ -95,12 +101,15 @@ handles.axial = anatCLdataset.Axial;
 handles.sagittal = anatCLdataset.Sagittal;
 if isfield(anatCLdataset,'Cartesian2DPC')
     handles.cartesian = anatCLdataset.Cartesian2DPC;
+    updateLog(handles, "Cartesian data loaded");
 end
 if isfield(anatCLdataset,'Radial2DPC')
     handles.radial = anatCLdataset.Radial2DPC;
+    updateLog(handles, "Radial data loaded");
 end
 if isfield(anatCLdataset,'RadialSMS')
     handles.sms = anatCLdataset.RadialSMS;
+    updateLog(handles, "SMS data loaded");
 end 
 handles.Centerline = anatCLdataset.Centerline;
 updateAnatImages(handles)
@@ -113,10 +122,12 @@ h = scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:), 32, ...
     'DisplayName','Axial');
 alpha = 0.3;
 set(h,'MarkerEdgeAlpha',alpha,'MarkerFaceAlpha',alpha);
-legend('Location','southeast');
 xlabel('X (mm)');
 ylabel('Y (mm)');
 zlabel('Z (mm)');
+% legend('Axial', 'Location','southeast');
+legend_handles = {};
+legend_handles{end+1} = 'Axial';
 
 % POINTS = handles.coronal.POINTS;
 % h = scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:), 32, ...
@@ -133,19 +144,27 @@ h = scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:), 32, ...
     'DisplayName','Sagittal');
 alpha = 0.3;
 set(h,'MarkerEdgeAlpha',alpha,'MarkerFaceAlpha',alpha);
-legend('Location','southeast');
+% legend('Sagittal', 'Location','southeast');
+legend_handles{end+1} = 'Sagittal';
 
 set(handles.ShowCartPlanesRadio,'Enable','off','Value',1)
 set(handles.ShowRadPlanesRadio,'Enable','off','Value',1)
 set(handles.ShowSMSPlanesRadio,'Enable','off','Value',1)
 
+num_entries = 2;
+
 if isfield(anatCLdataset,'Cartesian2DPC')
+    num_entries = num_entries+1;
     for t=1:length(handles.cartesian)
         POINTS = handles.cartesian(t).POINTS;
         scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'b*', ...
             'LineWidth',12, ...
-            'DisplayName','Cart-2DPC');
-        legend('Location','southeast','AutoUpdate','off');
+            'DisplayName','Cartesian');
+        if t==1
+            legend_handles{end+1} = 'Cartesian';
+        else
+            legend_handles{end+1} = '';
+        end
     end
     for t=1:length(handles.cartesian)
         im = handles.cartesian(t).Images;
@@ -166,17 +185,23 @@ if isfield(anatCLdataset,'Cartesian2DPC')
         Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
         handles.Slices.cartesian = Slice;
         shading interp; colormap gray; hold on;
+        legend_handles{end+1} = '';
     end
     set(handles.ShowCartPlanesRadio,'Enable','on','Value',1)
 end
 
 if isfield(anatCLdataset,'Radial2DPC')
+    num_entries = num_entries+1;
     for t=1:length(handles.radial)
         POINTS = handles.radial(t).POINTS;
-        scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'y*', ...
+        scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
             'LineWidth',12, ...
-            'DisplayName','Rad-2DPC');
-        legend('Location','southeast','AutoUpdate','off');
+            'DisplayName','Radial');
+        if t==1
+            legend_handles{end+1} = 'Radial';
+        else
+            legend_handles{end+1} = '';
+        end
     end
     for t=1:length(handles.radial)
         % im = flipud(imresize(handles.radial(t).Images, 0.8906));
@@ -198,17 +223,23 @@ if isfield(anatCLdataset,'Radial2DPC')
         Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
         handles.Slices.radial = Slice;
         shading interp; colormap gray; hold on;
+        legend_handles{end+1} = '';
     end 
     set(handles.ShowRadPlanesRadio,'Enable','on','Value',1)
 end
 
 if isfield(anatCLdataset,'RadialSMS')
+    num_entries = num_entries+1;
     for t=1:length(handles.sms)
         POINTS = handles.sms(t).POINTS;
-        scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
+        scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'y*', ...
             'LineWidth',12, ...
-            'DisplayName','SMS-2DPC');
-        legend('Location','southeast','AutoUpdate','off');
+            'DisplayName','SMS');
+        if t==1
+            legend_handles{end+1} = 'SMS';
+        else
+            legend_handles{end+1} = '';
+        end
     end
     for t=1:length(handles.sms)
         im = flipud(handles.sms(t).Images);
@@ -229,6 +260,7 @@ if isfield(anatCLdataset,'RadialSMS')
         Slice(t) = slice(X,Y,Z,I,xslice,yslice,zslice); 
         handles.Slices.sms = Slice;
         shading interp; colormap gray; hold on;
+        legend_handles{end+1} = '';
     end
     set(handles.ShowSMSPlanesRadio,'Enable','on','Value',1)
 end
@@ -236,6 +268,8 @@ end
 splineLine = handles.Centerline;
 axes(handles.CenterlineDisplay);
 plot3(splineLine(:,1),splineLine(:,2),splineLine(:,3),'g','LineWidth',5, 'DisplayName', 'Centerline');
+legend_handles{end+1} = 'Centerline';
+legend(legend_handles, 'Location', 'southeast');
 
 guidata(hObject, handles);
 end
@@ -247,9 +281,17 @@ function LoadAxialPush_Callback(hObject, eventdata, handles)
 %    '*.dicom','DICOM-files (*.dicom)'; ...
 %    '*.*',  'All Files (*.*)'}, 'Select ONE Axial DICOM image');
 % [~,~,extension] = fileparts(anatomicalFile); %get file extension
+updateLog(handles, "Loading axial images...");
 anatomicalDir = uigetdir();
 dirInfo = dir(fullfile(anatomicalDir,'*.d*c*m'));
-handles.axial.Info = dicominfo(fullfile(anatomicalDir,dirInfo(1).name));
+try
+    handles.axial.Info = dicominfo(fullfile(anatomicalDir,dirInfo(1).name));
+catch
+    disp("ERROR: No valid images found. Please try again.")
+    updateLog(handles, "ERROR: No valid images found. Please try again.");
+    return
+end
+udpateLog(handles, "Axial images loaded")
 for i=1:length(dirInfo) %read all dcm files
     images(:,:,i) = single(dicomread(fullfile(anatomicalDir,dirInfo(i).name)));
 end  
@@ -286,6 +328,7 @@ set(handles.MinContrastUpdate,'Enable','off');
 set(handles.MaxContrastUpdate,'Enable','off'); 
 set(handles.WhiteBoxReminder,'Visible','on');
 axes(handles.AnatDisplay); %force axes to anatomical plot
+updateLog(handles, "Tracing axial images...");
 
 rot = handles.axial.RotationMatrix;
 images = handles.axial.Images;
@@ -332,6 +375,8 @@ legend('Location','southeast');
 xlabel('X (mm)');
 ylabel('Y (mm)');
 zlabel('Z (mm)');
+
+udpateLog(handles, "Axial points traced")
 
 set(handles.ImageSlider,'Enable','on'); 
 set(handles.MinContrastUpdate,'Enable','on'); 
@@ -447,9 +492,16 @@ handles.CurrView = 'Sagittal';
 %    '*.dicom','DICOM-files (*.dicom)'; ...
 %    '*.*',  'All Files (*.*)'}, 'Select ONE Axial DICOM image');
 % [~,~,extension] = fileparts(anatomicalFile); %get file extension
+updateLog(handles, "Loading sagittal images...");
 anatomicalDir = uigetdir();
 dirInfo = dir(fullfile(anatomicalDir,'*.d*c*m'));
-handles.sagittal.Info = dicominfo(fullfile(anatomicalDir,dirInfo(1).name));
+try
+    handles.sagittal.Info = dicominfo(fullfile(anatomicalDir,dirInfo(1).name));
+catch
+    disp("ERROR: No valid images found. Please try again.")
+    updateLog(handles, "ERROR: No valid images found. Please try again.");
+    return
+end
 for i=1:length(dirInfo) %read all dcm files
     images(:,:,i) = single(dicomread(fullfile(anatomicalDir,dirInfo(i).name)));
 end  
@@ -474,6 +526,7 @@ set(handles.MinContrastUpdate,'Enable','on');
 set(handles.MaxContrastUpdate,'Enable','on'); 
 set(handles.UpdateSagittal,'String','Sagittal Data Loaded'); 
 updateAnatImages(handles)
+udpateLog(handles, "Sagittal images loaded")
 
 guidata(hObject, handles);
 end
@@ -486,6 +539,7 @@ set(handles.MinContrastUpdate,'Enable','off');
 set(handles.MaxContrastUpdate,'Enable','off'); 
 set(handles.WhiteBoxReminder,'Visible','on');
 axes(handles.AnatDisplay); %force axes to anatomical plot
+updateLog(handles, "Tracing sagittal images...");
 
 rot = handles.sagittal.RotationMatrix;
 images = handles.sagittal.Images;
@@ -529,6 +583,7 @@ h = scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:), 32, ...
 alpha = 0.3;
 set(h,'MarkerEdgeAlpha',alpha,'MarkerFaceAlpha',alpha);
 legend('Location','southeast');
+udpateLog(handles, "Sagittal points traced")
 
 set(handles.ImageSlider,'Enable','on'); 
 set(handles.MinContrastUpdate,'Enable','on'); 
@@ -548,9 +603,17 @@ cartIter = handles.CurrCartesian;
 %    '*.dicom','DICOM-files (*.dicom)'; ...
 %    '*.*',  'All Files (*.*)'}, 'Select ONE Axial DICOM image');
 % [~,~,extension] = fileparts(anatomicalFile); %get file extension
+updateLog(handles, sprintf("Loading Cartesian plane %d...", cartIter));
 anatomicalDir = uigetdir();
 dirInfo = dir(fullfile(anatomicalDir,'*.d*c*m'));
-handles.cartesian(cartIter).Info = dicominfo(fullfile(anatomicalDir,dirInfo(1).name));
+try
+    handles.cartesian(cartIter).Info = dicominfo(fullfile(anatomicalDir,dirInfo(1).name));
+catch
+    disp("ERROR: No valid images found. Please try again.")
+    updateLog(handles, "ERROR: No valid images found. Please try again.");
+    return
+end
+
 for i=1:length(dirInfo) %read all dcm files
     images(:,:,i) = single(dicomread(fullfile(anatomicalDir,dirInfo(i).name)));
 end  
@@ -581,6 +644,7 @@ maxc = str2double(get(handles.MaxContrastUpdate,'String'));
 
 imshow(handles.cartesian(cartIter).Images,[minc maxc]);
 [x,y] = getpts(); %draw points on image along aorta
+updateLog(handles, 'Aorta points selected');
 z = (ones(size(x,1),1)); %add z-coordinates for slice
 dummy = ones(size(x));
 points = [x, y, z, dummy]';
@@ -596,7 +660,9 @@ axes(handles.CenterlineDisplay); hold on;
 scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'b*', ...
     'LineWidth',4, ...
     'DisplayName','Cartesian');
-legend('Location','southeast','AutoUpdate','off');
+if handles.CurrCartesian == 1
+    legend('Location','southeast', 'AutoUpdate','off');
+end
 
 handles.CurrCartesian = cartIter + 1;
 guidata(hObject, handles);
@@ -608,6 +674,7 @@ function Seg2DRadialPush_Callback(hObject, eventdata, handles)
 handles.CurrView = '2DRadial';
 handles.modality = 'rad';
 radIter = handles.CurrRadial;
+updateLog(handles, sprintf("Loading radial plane %d...", radIter));
 
 % [pcFile, pcDir] = uigetfile({'*.dat','Useable Files (*.dat)';
 %        '*.dat',  'DAT-files (*.dat)'; ...
@@ -615,8 +682,14 @@ radIter = handles.CurrRadial;
 pcDir = uigetdir();
 
 fid = fopen([pcDir filesep 'pcvipr_header.txt'], 'r'); %open header
-dataArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
-    'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
+try
+    dataArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
+        'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
+catch
+    disp("ERROR: No valid images found. Please try again.")
+    updateLog(handles, "ERROR: No valid images found. Please try again.");
+    return
+end
 fclose(fid);
 dataArray{1,2} = cellfun(@str2num,dataArray{1,2}(:),'UniformOutput',false);
 pcviprHeader = cell2struct(dataArray{1,2}(:),dataArray{1,1}(:),1); %turn to structure
@@ -662,6 +735,7 @@ maxc = str2double(get(handles.MaxContrastUpdate,'String'));
 % imshow(flipud(imresize(handles.radial(radIter).Images, 0.8906)),[minc maxc]);
 imshow(handles.radial(radIter).Images, [minc maxc]);
 [y,x] = getpts(); %draw points on image along aorta
+updateLog(handles, 'Aorta points selected');
 x = pcviprHeader.matrixx - x;
 % y = pcviprHeader.matrixy - y;
 % x = imageDim(2) - x;
@@ -676,8 +750,10 @@ for j=1:size(points,2)
 end
 axes(handles.CenterlineDisplay); hold on;
 scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
-    'LineWidth',12,'DisplayName','Rad-2DPC');
-legend('Location','southeast', 'AutoUpdate','on');
+    'LineWidth',12,'DisplayName','Radial');
+if handles.CurrRadial == 1
+    legend('Location','southeast', 'AutoUpdate','off');
+end
 
 points(4,:) = [];
 POINTS(4,:) = [];
@@ -693,11 +769,18 @@ function SegSMSPush_Callback(hObject, eventdata, handles)
 handles.CurrView = '2DSMS';
 handles.modality = 'sms';
 smsIter = handles.CurrSMS;
+updateLog(handles, sprintf("Loading SMS plane %d...", smsIter));
 
 [hdf5File, hdf5Dir] = uigetfile({'*.h5','Useable Files (*.h5)';
    '*.h5',  'HDF5 files (*.h5)'; ...
    '*.*',  'All Files (*.*)'}, 'Select the AAo.h5 or AbdAo.h5 file');
-hdf5Info = h5info(fullfile(hdf5Dir,hdf5File));
+try
+    hdf5Info = h5info(fullfile(hdf5Dir,hdf5File));
+catch
+    disp("ERROR: No valid images found. Please try again.")
+    updateLog(handles, "ERROR: No valid images found. Please try again.");
+    return
+end
 imageDim = hdf5Info.Datasets(4).Dataspace.Size;
 
 fid = fopen([hdf5Dir 'pcvipr_header.txt'], 'r'); %open header
@@ -759,6 +842,7 @@ maxc = str2double(get(handles.MaxContrastUpdate,'String'));
 
 imshow(handles.sms(smsIter).Images,[minc maxc]);
 [y,x] = getpts(); %draw points on image along aorta
+updateLog(handles, 'Aorta points selected');
 x = pcviprHeader.matrixx - x;
 % y = pcviprHeader.matrixy - y;
 % x = imageDim(2) - x;
@@ -800,8 +884,10 @@ for j=1:size(points,2)
 end
 axes(handles.CenterlineDisplay); hold on;
 scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'y*', ...
-    'LineWidth',12,'DisplayName','SMS-2DPC');
-legend('Location','southeast', 'AutoUpdate','on');
+    'LineWidth',12,'DisplayName','SMS');
+if handles.CurrSMS == 1
+    legend('Location','southeast', 'AutoUpdate','off');
+end
 
 points(4,:) = [];
 POINTS(4,:) = [];
@@ -814,21 +900,23 @@ end
 
 % --- Executes on button press in CreateCenterlinePush.
 function CreateCenterlinePush_Callback(hObject, eventdata, handles)
-    PC = [];
-    switch handles.modality
-        case 'cart'
-            for p=1:length(handles.cartesian)
-                PC = [PC handles.cartesian(p).POINTS];
-            end
-        case 'rad'
-            for p=1:length(handles.radial)
-                PC = [PC handles.radial(p).POINTS];
-            end 
-        case 'sms'
-            for p=1:length(handles.sms)
-                PC = [PC handles.sms(p).POINTS];
-            end 
-    end
+PC = [];
+switch handles.modality
+    case 'cart'
+        for p=1:length(handles.cartesian)
+            PC = [PC handles.cartesian(p).POINTS];
+        end
+    case 'rad'
+        for p=1:length(handles.radial)
+            PC = [PC handles.radial(p).POINTS];
+        end 
+    case 'sms'
+        for p=1:length(handles.sms)
+            PC = [PC handles.sms(p).POINTS];
+        end 
+end
+
+updateLog(handles, "Creating centerline...");
 
 %scatter(handles.coronal.POINTS(1,:),handles.coronal.POINTS(3,:),'b'); hold on;
 %scatter(handles.sagittal.POINTS(1,:),handles.sagittal.POINTS(3,:),'b');
@@ -847,6 +935,7 @@ delete(cor);
 hold on; plot(splinePositions2(:,1),splinePositions2(:,2),'LineWidth',2.0);
 hold off;
 handles.TraceCoronal = gcf;
+updateLog(handles, "Coronal view traced");
 
 figure(2); scatter(handles.sagittal.POINTS(2,:),handles.sagittal.POINTS(3,:),'b');
 hold on; yline(splinePositions2(1,2),'--');
@@ -860,6 +949,7 @@ splinePositions1 = interppolygon(sagP,150); %interpolate sagittal polyline (150 
 delete(sag);
 hold on; plot(splinePositions1(:,1),splinePositions1(:,2),'LineWidth',2.0);
 handles.TraceSagittal = gcf;
+updateLog(handles, "Sagittal view traced");
 
 % DEFINE: x=LR, y=AP, z=SI
 % Flipped orientation
@@ -906,6 +996,7 @@ switch handles.modality
             shading interp; colormap gray; hold on;
         end
         set(handles.ShowCartPlanesRadio,'Enable','on','Value',1)
+        updateLog(handles, "Cartesian centerline created");
     case 'rad'
         for t=1:length(handles.radial)
             im = flipud(handles.radial(t).Images);
@@ -929,6 +1020,7 @@ switch handles.modality
             shading interp; colormap gray; hold on;
         end
         set(handles.ShowRadPlanesRadio,'Enable','on','Value',1)
+        updateLog(handles, "Radial centerline created");
     case 'sms'
         for t=1:length(handles.sms)
             im = flipud(handles.sms(t).Images);
@@ -951,6 +1043,7 @@ switch handles.modality
             shading interp; colormap gray; hold on;
         end
         set(handles.ShowSMSPlanesRadio,'Enable','on','Value',1)
+        updateLog(handles, "SMS centerline created");
 end 
 
 handles.Centerline = splineLine;
@@ -960,6 +1053,7 @@ end
 
 % --- Executes on button press in SaveCenterlinePush.
 function SaveCenterlinePush_Callback(hObject, eventdata, handles)
+updateLog(handles, "Saving centerline...");
 initials = inputdlg("Please type in your initials");
 date = string(datetime('now', 'Format', 'yyyy-MM-dd-HHmm'));
 centerline = handles.Centerline;
@@ -1025,7 +1119,7 @@ switch handles.modality
     case 'sms'
         centerline_folder = strcat(directory, filesep, 'CenterlineData_SMS_', date, "_", initials{1});
 end
-disp(centerline_folder)
+% disp(centerline_folder)
 if ~exist(centerline_folder, "dir")
     mkdir(centerline_folder);
 end
@@ -1135,6 +1229,15 @@ function updateAnatImages(handles)
     imshow(anatSlice,[minc maxc]); %show image
 end
 
+% --- Adds new text to Logbox box
+function updateLog(handles, message)
+    SS = get(handles.Logbox,'String');
+    SS{end+1} = message;
+    set(handles.Logbox,'String',SS);
+    set(handles.Logbox,'Value',max(numel(SS),2));
+    drawnow
+end
+
 % --- Executes on button press in ShowCartPlanesRadio.
 function ShowCartPlanesRadio_Callback(hObject, eventdata, handles)
     Slices = handles.Slices.cartesian;
@@ -1217,4 +1320,28 @@ function ImageSlider_CreateFcn(hObject, eventdata, handles)
     if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
         set(hObject,'BackgroundColor',[.9 .9 .9]);
     end
+end
+
+
+% --- Executes on selection change in Logbox.
+function Logbox_Callback(hObject, eventdata, handles)
+    % hObject    handle to Logbox (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    
+    % Hints: contents = cellstr(get(hObject,'String')) returns Logbox contents as cell array
+    %        contents{get(hObject,'Value')} returns selected item from Logbox
+end
+
+% --- Executes during object creation, after setting all properties.
+function Logbox_CreateFcn(hObject, eventdata, handles)
+    % hObject    handle to Logbox (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    empty - handles not created until after all CreateFcns called
+    
+    % Hint: listbox controls usually have a white background on Windows.
+    %       See ISPC and COMPUTER.
+    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor','white');
+end
 end
