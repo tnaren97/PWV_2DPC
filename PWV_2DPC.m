@@ -44,6 +44,7 @@ function varargout = PWV_2DPC(varargin)
         gui_mainfcn(gui_State, varargin{:});
     end
     % End initialization code - DO NOT EDIT
+end
 
 
 function PWV_2DPC_OpeningFcn(hObject, eventdata, handles, varargin)
@@ -96,25 +97,22 @@ function PWV_2DPC_OpeningFcn(hObject, eventdata, handles, varargin)
     set(handles.exportAnalysisButton,'Enable','off');
     
     guidata(hObject, handles);
+end
 
 % --- Outputs from this function are returned to the command line.
 function varargout = PWV_2DPC_OutputFcn(hObject, eventdata, handles) 
     varargout{1} = handles.output;
-
+end
 
     
 %%%%%%%%%%%% LOAD 2DPC PLANE %%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% --- PLANE PLOT - CREATE FUNCTION
-function pcPlanePlot_CreateFcn(hObject, eventdata, handles)
-
-
 % --- LOAD CENTERLINE DATA - CALLBACK
 function loadCLpush_Callback(hObject, eventdata, handles)
     [clFile, clDir] = uigetfile({'*.mat;','Useable Files (*.mat)';
        '*.mat','MAT-files (*.mat)'; ...
        '*.*',  'All Files (*.*)'}, 'Select the centerline dataset (anatCLdataset.mat)');
-    load([clDir clFile]);
+    load(fullfile(clDir, clFile));
     handles.centerline = anatCLdataset;
     
     cd(clDir);
@@ -122,7 +120,7 @@ function loadCLpush_Callback(hObject, eventdata, handles)
     set(handles.load2DPCbutton,'Enable','on');
     set(handles.planeLoadedText,'String','Centerline Loaded');
     guidata(hObject, handles);
-    
+end  
     
 % --- LOAD 2DPC DATASETS - CALLBACK
 function load2DPCbutton_Callback(hObject, eventdata, handles)
@@ -264,29 +262,8 @@ function load2DPCbutton_Callback(hObject, eventdata, handles)
     set(handles.pcDatasetPopup,'String',fieldnames(handles.pcDatasets(pcIter).Images)); %list of all datasets (CD, MAG, v, etc.)
     guidata(hObject, handles);
     updatePCImages(handles);
-    
-    
-% --- PLANE DROPDOWN - CALLBACK
-function pcPlanePopup_Callback(hObject, eventdata, handles)   
-    updatePCImages(handles); %update images on PC plot anytime we click on a new plane
+end  
 
-% --- PLANE DROPDOWN - CREATE FUNCTION
-function pcPlanePopup_CreateFcn(hObject, eventdata, handles)
-    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-        set(hObject,'BackgroundColor','white');
-    end
-
-    
-% --- DATASET DROPDOWN - CALLBACK
-function pcDatasetPopup_Callback(hObject, eventdata, handles)
-    updatePCImages(handles); %update images on PC plot anytime we click on a new dataset
-
-% --- DATASET DROPDOWN - CREATE FUNCTION
-function pcDatasetPopup_CreateFcn(hObject, eventdata, handles)
-    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-        set(hObject,'BackgroundColor','white');
-    end
-    
     
 % --- DRAWROI BUTTON - CALLBACK
 function drawROIbutton_Callback(hObject, eventdata, handles)
@@ -334,8 +311,9 @@ function drawROIbutton_Callback(hObject, eventdata, handles)
 
     guidata(hObject,handles);
     updatePCImages(handles); 
-
+end
     
+
 % --- LOAD ROI BUTTON - CALLBACK
 function loadROIbutton_Callback(hObject, eventdata, handles)
     planeNum = get(handles.pcPlanePopup,'Value'); %get current plane (eg AAo)
@@ -472,19 +450,20 @@ function loadROIbutton_Callback(hObject, eventdata, handles)
     if dataDir(end)=='\' || dataDir(end)=='/' %kill the slash if it exists
         dataDir(end) = [];
     end 
-    if ~exist([dataDir filesep 'ROIimages_' handles.global.dataType],'dir') %if the proposed directory doesn't exist
-        mkdir([dataDir filesep 'ROIimages_' handles.global.dataType]); %make it
-        cd([dataDir filesep 'ROIimages_' handles.global.dataType]); %move into it
+    roi_image_fold = fullfile(dataDir, 'ROIimages_', handles.global.dataType);
+    if ~exist(roi_image_fold,'dir') %if the proposed directory doesn't exist
+        mkdir(roi_image_fold); %make it
+        % cd([dataDir filesep 'ROIimages_' handles.global.dataType]); %move into it
         frame = getframe(handles.pcPlanePlot); %get a snapshot of the PC plane plot with ROI
         image = frame2im(frame); %make into image
-        imwrite(image,[handles.pcDatasets(planeNum).Names '.png']) %write it out as PNG
+        imwrite(image,fullfile(roi_image_fold, handles.pcDatasets(planeNum).Names, '.png')) %write it out as PNG
     else
-        cd([dataDir filesep 'ROIimages_' handles.global.dataType]); %if ROIimages already exists, move into it
+        % cd([dataDir filesep 'ROIimages_' handles.global.dataType]); %if ROIimages already exists, move into it
         frame = getframe(handles.pcPlanePlot);
         image = frame2im(frame);
-        imwrite(image,[handles.pcDatasets(planeNum).Names '.png'])
+        imwrite(image,fullfile(roi_image_fold, handles.pcDatasets(planeNum).Names, '.png'))
     end 
-    cd(handles.global.homeDir); %lets go back home
+    % cd(handles.global.homeDir); %lets go back home
     
     %%% Label each ROI w/ names (helpful because there may be 2 ROIs/plane)
     for i=1:numel(handles.pcDatasets)
@@ -515,47 +494,11 @@ function loadROIbutton_Callback(hObject, eventdata, handles)
     guidata(hObject,handles);
     updatePCImages(handles); %update images (to remove green ROI circle)
     axes(handles.pcPlanePlot); %make sure we're still on PC plot
-   
+end 
 
-    % --- PLANE SLIDER - CALLBACK
-function pcSlider_Callback(hObject, eventdata, handles)
-    updatePCImages(handles); %update images if slider is moved
-
-% --- PLANE SLIDER - CREATE FUNCTION
-function pcSlider_CreateFcn(hObject, eventdata, handles)
-    if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-        set(hObject,'BackgroundColor',[.9 .9 .9]);
-    end
-    
-    
-% --- MINIMUM CONTRAST VALUE BOX - CALLBACK  
-function minContrastBox_Callback(hObject, eventdata, handles)
-    updatePCImages(handles)
-
-% --- MINIMUM CONTRAST VALUE BOX - CREATE FUNCTION   
-function minContrastBox_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- MAXIMUM CONTRAST VALUE BOX - CALLBACK  
-function maxContrastBox_Callback(hObject, eventdata, handles)
-    updatePCImages(handles)
-    
-% --- MAXIMUM CONTRAST VALUE BOX - CREATE FUNCTION
-function maxContrastBox_CreateFcn(hObject, eventdata, handles)
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-    
     
 %%%%%%%%%%%% VELOCITY PLOT %%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% --- VELOCITY PLOT - CREATE FUNCTION
-function velocityPlot_CreateFcn(hObject, eventdata, handles)
-    
-
 % --- INTERPOLATE POPUP - CALLBACK
 function interpolatePopup_Callback(hObject, eventdata, handles)
     interp = get(handles.interpolatePopup,'Value');
@@ -576,18 +519,7 @@ function interpolatePopup_Callback(hObject, eventdata, handles)
     if handles.global.startAnalyzing %if we're already analyzing PWVs
         completeLoadingROI_Callback(hObject, eventdata, handles); %recompute PWVs with interpolated data
     end 
-
-% --- INTERPOLATE POPUP - CREATE FUNCTION
-function interpolatePopup_CreateFcn(hObject, eventdata, handles)
-    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-        set(hObject,'BackgroundColor','white');
-    end
-    
-    
-% --- ERROR BAR RADIO - CALLBACK
-function errorBarRadio_Callback(hObject, eventdata, handles)
-    plotVelocity(handles) %replot flow curves with errors bars
-    
+end
     
 % --- PG SHIFT RADIO - CALLBACK
 function pgShift_Callback(hObject, eventdata, handles)
@@ -628,14 +560,8 @@ function pgShift_Callback(hObject, eventdata, handles)
         completeLoadingROI_Callback(hObject, eventdata, handles); %recompute PWVs with shifted curves
     end 
     guidata(hObject, handles);
-    
-% --- PG SHIFT RADIO - CREATE FUNCTION
-function pgShift_CreateFcn(hObject, eventdata, handles)
-    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-        set(hObject,'BackgroundColor','white');
-    end
+end
 
-   
     
 % --- Executes on button press in completeLoadingROI.
 function completeLoadingROI_Callback(hObject, eventdata, handles)
@@ -772,23 +698,27 @@ function completeLoadingROI_Callback(hObject, eventdata, handles)
     set(handles.xcorrRadio,'Enable','on');
     set(handles.exportAnalysisButton,'Enable','on');
     guidata(hObject, handles);
-    
+end   
     
 
 %%%%%%%%%%%% PWV PLOT %%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-% --- PWV PLOT - CREATE FUNCTION
-function TimeVsDistance_CreateFcn(hObject, eventdata, handles)
-
-
 % --- EXPORT ANALYSIS - CALLBACK
 function exportAnalysisButton_Callback(hObject, eventdata, handles)
+    globals = handles.global;
     date = string(datetime('now', 'Format', 'yyyy-MM-dd-HHmm'));
     initials = inputdlg("Please type in your initials");
-    folderName = ["PWV_2DPC_Analysis_" date initials{1}];
-    globals = handles.global;
+    folderName = strcat("PWV_2DPC_Analysis_", date, "_", initials{1});
+    baseDir = fullfile(globals.homeDir, folderName);
+    if ~exist(baseDir,'dir')
+        mkdir(baseDir);
+    end 
+    dataDir = fullfile(baseDir, 'DataAnalysis_', globals.dataType);
+    if ~exist(dataDir,'dir') %if directory doesn't exist
+        mkdir(dataDir); %make it
+    end 
     
-    for a=1:2
+    for a=1:2  % number of analysis types
         if a==1
             handles.globals.analysisType = 'Absolute_Time';
             globals.analysisType = 'Absolute_Time';
@@ -889,101 +819,46 @@ function exportAnalysisButton_Callback(hObject, eventdata, handles)
 
         % Make table for writing excel file
         pwvTable = table(PLANES,Distances,TTPoint,TTFoot,TTUpstroke,Xcorr,TTaverage,PWV_Point,PWV_Foot,PWV_Upstroke,PWV_Xcorr,PWV_Average);
-        baseDir = globals.homeDir; %rejoin string to get name of folder one up from plane data
-        dataDir = ['DataAnalysis_' globals.dataType];
 
-        set(handles.exportDone,'String',['Saving Dataset ' num2str(a) ' ...']);
-        if ~exist([baseDir filesep dataDir],'dir') %if directory doesn't exist
-            mkdir([baseDir filesep dataDir]); %make it
+        set(handles.exportDone,'String',strcat('Saving Dataset ', num2str(a), '...'));
+        analysisDir = fullfile(dataDir, globals.analysisType);
+        if ~exist(analysisDir,'dir') %if directory doesn't exist
+            mkdir(analysisDir); %make it
         end 
-        cd([baseDir filesep dataDir]); %go to it
-        mkdir(globals.analysisType);
-        cd(globals.analysisType);
-        writetable(pwvTable,['Summary_' date '.xlsx'],'FileType','spreadsheet'); %write excel sheet for each interp
+        % cd([baseDir filesep dataDir]); %go to it
+        % mkdir(analysisDir);
+        % cd(globals.analysisType);
+        writetable(pwvTable,fullfile(analysisDir, 'Summary_', date, '.xlsx'), 'FileType','spreadsheet'); %write excel sheet for each interp
         %if strcmp(globals.interpType,'Gaussian')
-            saveTTplots(handles,flow);
+        saveTTplots(handles, flow, analysisDir);
         %end 
         %if ~exist('flow.mat','file')
-            save('flow.mat','flow')
-            save('pwvTable.mat','pwvTable');
-            save('globals.mat','globals');
+        save(fullfile(analysisDir, 'flow.mat'),'flow');
+        save(fullfile(analysisDir, 'pwvTable.mat'),'pwvTable');
+        save(fullfile(analysisDir, 'globals.mat'),'globals');
         %end 
-        cd(globals.homeDir); %go back home  
+        % cd(globals.homeDir); %go back home  
         clear PLANES %need to do this because PLANES will keep getting transposed
 
-        cd([baseDir filesep dataDir]); %go to it
+        % cd([baseDir filesep dataDir]); %go to it
         frame = getframe(handles.TimeVsDistance); %get snapshot of PWV plot 
-        imwrite(frame2im(frame),'PWVanalysisPlot.png'); %write out to PNG
-        pcDatasets = handles.pcDatasets;
-        save('pcDatasets.mat','pcDatasets');
-        cd(globals.homeDir); %go back home  
-        if ~exist(folderName,'dir')
-            mkdir(folderName);
-        end 
-        movefile(dataDir,folderName);
+        imwrite(frame2im(frame),fullfile(analysisDir, 'PWVanalysisPlot.png')); %write out to PNG
+        
+        % cd(globals.homeDir); %go back home  
+        % movefile(dataDir,folderName);
         guidata(hObject, handles);
     end 
-    movefile(['ROIimages_' handles.global.dataType],folderName);
+    pcDatasets = handles.pcDatasets;
+    save(fullfile(dataDir, 'pcDatasets.mat'),'pcDatasets');
+    % movefile(['ROIimages_' handles.global.dataType],folderName);
     set(handles.exportDone,'String','Export Completed!');
 
     guidata(hObject, handles);
-    
-   
-
-% --- TTPoint READOUT - CREATE FUNCTION
-function ttpointData_CreateFcn(hObject, eventdata, handles)
-% --- TTPoint RADIO - CALLBACK
-function ttpointRadio_Callback(hObject, eventdata, handles)
-    if ~get(handles.ttpointRadio,'Value') %if we're turned off
-        set(handles.ttpointData,'String',' '); %don't display PWV
-    end 
-    if handles.global.startAnalyzing %if we're analyzing PWVs
-        completeLoadingROI_Callback(hObject, eventdata, handles); %reanalyze without TTpoint 
-    end 
-
-% --- TTUpstroke READOUT - CREATE FUNCTION
-function ttuData_CreateFcn(hObject, eventdata, handles)
-% --- TTUpstroke RADIO - CALLBACK
-function ttuRadio_Callback(hObject, eventdata, handles)
-    if ~get(handles.ttuRadio,'Value')
-        set(handles.ttuData,'String',' ');
-    end 
-    if handles.global.startAnalyzing
-        completeLoadingROI_Callback(hObject, eventdata, handles);
-    end 
-
-% --- TTFoot READOUT - CREATE FUNCTION
-function ttfData_CreateFcn(hObject, eventdata, handles)
-% --- TTFoot RADIO - CALLBACK
-function ttfRadio_Callback(hObject, eventdata, handles)
-    if ~get(handles.ttfRadio,'Value')
-        set(handles.ttfData,'String',' ');
-    end 
-    if handles.global.startAnalyzing
-        completeLoadingROI_Callback(hObject, eventdata, handles);
-    end 
-
-% --- Xcorr READOUT - CREATE FUNCTION
-function xcorrData_CreateFcn(hObject, eventdata, handles)
-% --- Xcorr RADIO - CALLBACK
-function xcorrRadio_Callback(hObject, eventdata, handles)
-    if ~get(handles.xcorrRadio,'Value')
-        set(handles.xcorrData,'String',' ');
-    end 
-    if handles.global.startAnalyzing
-        completeLoadingROI_Callback(hObject, eventdata, handles);
-    end 
-
-% --- AVERAGE READOUT - CREATE FUNCTION
-function averageData_CreateFcn(hObject, eventdata, handles)
-
-
-
+end   
 
 
 %%%%%%%%%%%% MY FUNCTIONS %%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
-
 % --- Update Images in PLANE PLOT
 function updatePCImages(handles)
     axes(handles.pcPlanePlot); %force axes to PC plot
@@ -1028,7 +903,7 @@ function updatePCImages(handles)
         cla(handles.pcPlanePlot,'reset') %otherwise, reset the plot
         imshow(rescale(slice),[minc maxc]) %then show the image
     end 
-    
+end
     
     
 % --- "Time to" calculations (TTPoint, TTUpstroke, TTFoot, Xcorr)
@@ -1184,6 +1059,112 @@ function flow = computeTTs(flow,globals)
             flow(i).Xcorr = flow(i-1).Xcorr + timeres*shift; %cumulative sum from last time
         end  
     end 
+end
+
+
+% --- Save Time-To Plots for record-keeping and debugging
+ function saveTTplots(handles,flow, dir)   
+    times = flow(1).Interp.times;
+    figure('units','normalized','outerposition',[0 0 1 1]); 
+    % Note that above we assume same time scale for each plane (MR scan)
+    xlim([min(times) max(times)]);
+    legendSet = {}; %add baseline to legend names
+    count = 1;
+    for i=1:numel(flow) %for all planes
+        switch handles.global.interpType %check what interpolation we are using
+            case 'None'
+                vTemp = flow(i).Interp.mean_v; %grab mean velocity
+                timeTemp = flow(i).Interp.times;
+            case 'Gaussian'
+                vTemp = flow(i).Gaussian.mean_v; %grab mean velocity
+                timeTemp = flow(i).Gaussian.times;
+            case 'Shifted'
+                vTemp = flow(i).Shifted.mean_v; %grab mean velocity
+                timeTemp = flow(i).Shifted.times;
+        end 
+
+        if mean(vTemp)<0
+            vTemp = -1*vTemp;
+        end
+        vTemp = normalize(vTemp,'range');
+
+        hold on; plot(timeTemp,vTemp);
+        velocity(count,:) = vTemp;
+        times(count,:) = timeTemp;
+        count = count+1;
+    end 
+    wtime = 1.5;
+    legend(legendSet,'Location','northeastoutside','AutoUpdate','off');
+    xlabel('Time (ms)'); 
+    ylim([0 1.05]);
+    ylabel('Normalized Mean Velocity in ROI (mm/s)'); %set axes labels
+    text(50,1.05,'Note: Waveforms may be distorted if HR different between scans!')
+
+    ttp = [flow.TTPoint];
+    for i=1:length(ttp)
+        [~,idx] = min( abs(times(i,:)-ttp(i)) );
+        h(i) = scatter(times(i,idx),velocity(i,idx),'k','filled');
+        h2(i) = scatter(times(i,idx),0,'k');
+        h3(i) = plot([times(i,idx) times(i,idx)],[velocity(i,idx),0],':k');
+    end 
+    title('Time-To-Point');
+    frame = getframe(gcf);
+    imwrite(frame2im(frame),fullfile(dir, 'TTPoint.png'));
+    pause(wtime)
+    set(h,'Visible','off'); set(h2,'Visible','off'); set(h3,'Visible','off')
+    
+    ttf = [flow.TTFoot];
+    for i=1:length(ttf)
+        [~,idx] = min( abs(times(i,:)-ttf(i)) );
+        [~,idx2] = max(velocity(i,:));
+        P1 = flow(i).P1;
+        x = times(i,idx:idx2);
+        y = P1(1)*x + P1(2);
+        h(i) = plot(x,y,'k');
+        h2(i) = scatter(times(i,idx),0,'k');
+    end 
+    title('Time-To-Foot');
+    frame = getframe(gcf);
+    imwrite(frame2im(frame),fullfile(dir, 'TTFoot.png'));
+    pause(wtime)
+
+    set(h,'Visible','off'); set(h2,'Visible','off');
+        
+    ttu = [flow.TTUpstroke];
+    for i=1:length(ttu)
+        [~,idx] = min( abs(times(i,:)-ttu(i)) );
+        [~,maxIdx] = max(velocity(i,:));
+        upstroke = velocity(i,1:maxIdx);
+        [minVel,~] = min(upstroke);
+        h(i) = scatter(times(i,idx),velocity(i,idx),'k','filled');
+        h2(i) = scatter(times(i,idx),0,'k');
+        h3(i) = plot([times(i,idx) times(i,idx)],[velocity(i,idx),0],':k');
+        sigT = flow(i).SigmoidTimes;
+        sig = flow(i).SigmoidFit;
+        sigShift = sig - sig*minVel + minVel;
+        h4(i) = plot(sigT,sigShift,'.k');
+    end 
+    title('Time-To-Upstroke');
+    frame = getframe(gcf);
+    imwrite(frame2im(frame),fullfile(dir, 'TTUpstroke.png'));
+    pause(wtime)
+    set(h,'Visible','off'); set(h2,'Visible','off'); set(h3,'Visible','off'); set(h4,'Visible','off');
+    
+    xcorr = [flow.Xcorr];
+    for i=1:length(xcorr)
+        [~,idx] = min( abs(times(i,:)-xcorr(i)) );
+        h(i) = scatter(times(i,idx),velocity(i,idx),'k','filled');
+        h2(i) = scatter(times(i,idx),0,'k');
+        h3(i) = plot([times(i,idx) times(i,idx)],[velocity(i,idx),0],':k');
+    end 
+    title('Cross Correlation Time Lag');
+    frame = getframe(gcf);
+    imwrite(frame2im(frame),fullfile(dir, 'Xcorr.png'));
+    pause(wtime)
+    set(h,'Visible','off'); set(h2,'Visible','off'); set(h3,'Visible','off')
+    
+    hold off; close(gcf);   
+ end
     
     
 % --- Plot Velocities    
@@ -1246,7 +1227,7 @@ function plotVelocity(handles)
     legend(legendSet); hold off
     xlabel('Time (ms)'); ylabel('Mean Velocity in ROI (mm/s)'); %set axes labels
     %xlim([times(1),times(end)]); %chop limits to make curve full width
-    
+end
 
     
 % --- Sigmoid Fit Function
@@ -1284,7 +1265,7 @@ function [sigmoid,t,t1,t2] = sigFit(mean_v,times)
     curvature = ddy.*dx./(dx.^2 + dy.^2).^(3/2);
     [~,tIdx] = max(curvature);
     t1 = t(tIdx); %point of max curvature of sigmoid
-
+end
     
     
 % --- Condense and organize flow data obtained from ROIs
@@ -1319,111 +1300,8 @@ function flow = organizeFlowInfo(handles)
             end 
         end 
     end 
+end
 
-% --- Save Time-To Plots for record-keeping and debugging
- function saveTTplots(handles,flow)   
-    times = flow(1).Interp.times;
-    figure('units','normalized','outerposition',[0 0 1 1]); 
-    % Note that above we assume same time scale for each plane (MR scan)
-    xlim([min(times) max(times)]);
-    legendSet = {}; %add baseline to legend names
-    count = 1;
-    for i=1:numel(flow) %for all planes
-        switch handles.global.interpType %check what interpolation we are using
-            case 'None'
-                vTemp = flow(i).Interp.mean_v; %grab mean velocity
-                timeTemp = flow(i).Interp.times;
-            case 'Gaussian'
-                vTemp = flow(i).Gaussian.mean_v; %grab mean velocity
-                timeTemp = flow(i).Gaussian.times;
-            case 'Shifted'
-                vTemp = flow(i).Shifted.mean_v; %grab mean velocity
-                timeTemp = flow(i).Shifted.times;
-        end 
-
-        if mean(vTemp)<0
-            vTemp = -1*vTemp;
-        end
-        vTemp = normalize(vTemp,'range');
-
-        hold on; plot(timeTemp,vTemp);
-        velocity(count,:) = vTemp;
-        times(count,:) = timeTemp;
-        count = count+1;
-    end 
-    wtime = 1.5;
-    legend(legendSet,'Location','northeastoutside','AutoUpdate','off');
-    xlabel('Time (ms)'); 
-    ylim([0 1.05]);
-    ylabel('Normalized Mean Velocity in ROI (mm/s)'); %set axes labels
-    text(50,1.05,'Note: Waveforms may be distorted if HR different between scans!')
-
-    ttp = [flow.TTPoint];
-    for i=1:length(ttp)
-        [~,idx] = min( abs(times(i,:)-ttp(i)) );
-        h(i) = scatter(times(i,idx),velocity(i,idx),'k','filled');
-        h2(i) = scatter(times(i,idx),0,'k');
-        h3(i) = plot([times(i,idx) times(i,idx)],[velocity(i,idx),0],':k');
-    end 
-    title('Time-To-Point');
-    frame = getframe(gcf);
-    imwrite(frame2im(frame),[pwd filesep 'TTPoint.png']);
-    pause(wtime)
-    set(h,'Visible','off'); set(h2,'Visible','off'); set(h3,'Visible','off')
-    
-    ttf = [flow.TTFoot];
-    for i=1:length(ttf)
-        [~,idx] = min( abs(times(i,:)-ttf(i)) );
-        [~,idx2] = max(velocity(i,:));
-        P1 = flow(i).P1;
-        x = times(i,idx:idx2);
-        y = P1(1)*x + P1(2);
-        h(i) = plot(x,y,'k');
-        h2(i) = scatter(times(i,idx),0,'k');
-    end 
-    title('Time-To-Foot');
-    frame = getframe(gcf);
-    imwrite(frame2im(frame),[pwd filesep 'TTFoot.png']);
-    pause(wtime)
-
-    set(h,'Visible','off'); set(h2,'Visible','off');
-        
-    ttu = [flow.TTUpstroke];
-    for i=1:length(ttu)
-        [~,idx] = min( abs(times(i,:)-ttu(i)) );
-        [~,maxIdx] = max(velocity(i,:));
-        upstroke = velocity(i,1:maxIdx);
-        [minVel,~] = min(upstroke);
-        h(i) = scatter(times(i,idx),velocity(i,idx),'k','filled');
-        h2(i) = scatter(times(i,idx),0,'k');
-        h3(i) = plot([times(i,idx) times(i,idx)],[velocity(i,idx),0],':k');
-        sigT = flow(i).SigmoidTimes;
-        sig = flow(i).SigmoidFit;
-        sigShift = sig - sig*minVel + minVel;
-        h4(i) = plot(sigT,sigShift,'.k');
-    end 
-    title('Time-To-Upstroke');
-    frame = getframe(gcf);
-    imwrite(frame2im(frame),[pwd filesep 'TTUpstroke.png']);
-    pause(wtime)
-    set(h,'Visible','off'); set(h2,'Visible','off'); set(h3,'Visible','off'); set(h4,'Visible','off');
-    
-    xcorr = [flow.Xcorr];
-    for i=1:length(xcorr)
-        [~,idx] = min( abs(times(i,:)-xcorr(i)) );
-        h(i) = scatter(times(i,idx),velocity(i,idx),'k','filled');
-        h2(i) = scatter(times(i,idx),0,'k');
-        h3(i) = plot([times(i,idx) times(i,idx)],[velocity(i,idx),0],':k');
-    end 
-    title('Cross Correlation Time Lag');
-    frame = getframe(gcf);
-    imwrite(frame2im(frame),[pwd filesep 'Xcorr.png']);
-    pause(wtime)
-    set(h,'Visible','off'); set(h2,'Visible','off'); set(h3,'Visible','off')
-    
-    hold off; close(gcf);   
-    
-    
     
 % Load Dat files
 function v = load_dat(name, res)
@@ -1435,6 +1313,7 @@ function v = load_dat(name, res)
     % Reads in as short, reshapes by image res.
     v = reshape(fread(fid,'short=>single'),res);
     fclose(fid);
+end
 
 
 function [BW, centers, radii, radrange, sens] = circleFinder(image, num_roi, radrange, sens)
@@ -1489,6 +1368,156 @@ function [BW, centers, radii, radrange, sens] = circleFinder(image, num_roi, rad
 end
 
 
+%%%%%%%%%%%%%%%% MISC %%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+% --- PLANE PLOT - CREATE FUNCTION
+function pcPlanePlot_CreateFcn(hObject, eventdata, handles)
+end
 
+% --- PLANE DROPDOWN - CALLBACK
+function pcPlanePopup_Callback(hObject, eventdata, handles)   
+    updatePCImages(handles); %update images on PC plot anytime we click on a new plane
+end
+
+% --- PLANE DROPDOWN - CREATE FUNCTION
+function pcPlanePopup_CreateFcn(hObject, eventdata, handles)
+    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor','white');
+    end
+end
+    
+% --- DATASET DROPDOWN - CALLBACK
+function pcDatasetPopup_Callback(hObject, eventdata, handles)
+    updatePCImages(handles); %update images on PC plot anytime we click on a new dataset
+end
+
+% --- DATASET DROPDOWN - CREATE FUNCTION
+function pcDatasetPopup_CreateFcn(hObject, eventdata, handles)
+    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor','white');
+    end
+end  
+
+    % --- PLANE SLIDER - CALLBACK
+function pcSlider_Callback(hObject, eventdata, handles)
+    updatePCImages(handles); %update images if slider is moved
+end
+
+% --- PLANE SLIDER - CREATE FUNCTION
+function pcSlider_CreateFcn(hObject, eventdata, handles)
+    if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor',[.9 .9 .9]);
+    end
+end   
+    
+% --- MINIMUM CONTRAST VALUE BOX - CALLBACK  
+function minContrastBox_Callback(hObject, eventdata, handles)
+    updatePCImages(handles)
+end
+
+% --- MINIMUM CONTRAST VALUE BOX - CREATE FUNCTION   
+function minContrastBox_CreateFcn(hObject, eventdata, handles)
+    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor','white');
+    end
+end
+
+% --- MAXIMUM CONTRAST VALUE BOX - CALLBACK  
+function maxContrastBox_Callback(hObject, eventdata, handles)
+    updatePCImages(handles)
+end
+
+% --- MAXIMUM CONTRAST VALUE BOX - CREATE FUNCTION
+function maxContrastBox_CreateFcn(hObject, eventdata, handles)
+    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor','white');
+    end
+end  
+
+% --- PG SHIFT RADIO - CREATE FUNCTION
+function pgShift_CreateFcn(hObject, eventdata, handles)
+    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor','white');
+    end
+end
+
+% --- PWV PLOT - CREATE FUNCTION
+function TimeVsDistance_CreateFcn(hObject, eventdata, handles)
+end
+
+% --- VELOCITY PLOT - CREATE FUNCTION
+function velocityPlot_CreateFcn(hObject, eventdata, handles)
+end
+
+% --- INTERPOLATE POPUP - CREATE FUNCTION
+function interpolatePopup_CreateFcn(hObject, eventdata, handles)
+    if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+        set(hObject,'BackgroundColor','white');
+    end
+end
+    
+% --- ERROR BAR RADIO - CALLBACK
+function errorBarRadio_Callback(hObject, eventdata, handles)
+    plotVelocity(handles) %replot flow curves with errors bars
+end  
+% --- TTPoint READOUT - CREATE FUNCTION
+function ttpointData_CreateFcn(hObject, eventdata, handles)
+end
+
+% --- TTPoint RADIO - CALLBACK
+function ttpointRadio_Callback(hObject, eventdata, handles)
+    if ~get(handles.ttpointRadio,'Value') %if we're turned off
+        set(handles.ttpointData,'String',' '); %don't display PWV
+    end 
+    if handles.global.startAnalyzing %if we're analyzing PWVs
+        completeLoadingROI_Callback(hObject, eventdata, handles); %reanalyze without TTpoint 
+    end 
+end
+
+% --- TTUpstroke READOUT - CREATE FUNCTION
+function ttuData_CreateFcn(hObject, eventdata, handles)
+end
+
+% --- TTUpstroke RADIO - CALLBACK
+function ttuRadio_Callback(hObject, eventdata, handles)
+    if ~get(handles.ttuRadio,'Value')
+        set(handles.ttuData,'String',' ');
+    end 
+    if handles.global.startAnalyzing
+        completeLoadingROI_Callback(hObject, eventdata, handles);
+    end 
+end
+
+% --- TTFoot READOUT - CREATE FUNCTION
+function ttfData_CreateFcn(hObject, eventdata, handles)
+end
+
+% --- TTFoot RADIO - CALLBACK
+function ttfRadio_Callback(hObject, eventdata, handles)
+    if ~get(handles.ttfRadio,'Value')
+        set(handles.ttfData,'String',' ');
+    end 
+    if handles.global.startAnalyzing
+        completeLoadingROI_Callback(hObject, eventdata, handles);
+    end 
+end
+
+% --- Xcorr READOUT - CREATE FUNCTION
+function xcorrData_CreateFcn(hObject, eventdata, handles)
+end
+
+% --- Xcorr RADIO - CALLBACK
+function xcorrRadio_Callback(hObject, eventdata, handles)
+    if ~get(handles.xcorrRadio,'Value')
+        set(handles.xcorrData,'String',' ');
+    end 
+    if handles.global.startAnalyzing
+        completeLoadingROI_Callback(hObject, eventdata, handles);
+    end 
+end
+
+% --- AVERAGE READOUT - CREATE FUNCTION
+function averageData_CreateFcn(hObject, eventdata, handles)
+end
 
 
