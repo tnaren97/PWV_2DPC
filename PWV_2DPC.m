@@ -450,7 +450,7 @@ function loadROIbutton_Callback(hObject, eventdata, handles)
     if dataDir(end)=='\' || dataDir(end)=='/' %kill the slash if it exists
         dataDir(end) = [];
     end 
-    roi_image_fold = fullfile(dataDir, 'ROIimages_', handles.global.dataType);
+    roi_image_fold = fullfile(dataDir, strcat('ROIimages_', handles.global.dataType));
     if ~exist(roi_image_fold,'dir') %if the proposed directory doesn't exist
         mkdir(roi_image_fold); %make it
         % cd([dataDir filesep 'ROIimages_' handles.global.dataType]); %move into it
@@ -707,17 +707,24 @@ end
 function exportAnalysisButton_Callback(hObject, eventdata, handles)
     globals = handles.global;
     date = string(datetime('now', 'Format', 'yyyy-MM-dd-HHmm'));
-    initials = inputdlg("Please type in your initials");
-    folderName = strcat("PWV_2DPC_Analysis_", date, "_", initials{1});
-    baseDir = fullfile(globals.homeDir, folderName);
-    if ~exist(baseDir,'dir')
-        mkdir(baseDir);
-    end 
+    quest_ans = questdlg("Save to existing analysis folder?");
+    switch quest_ans
+        case "Yes"
+            baseDir = uigetdir("Select existing result folder");
+        case "No"
+            initials = inputdlg("Please type in your initials");
+            folderName = strcat("PWV_2DPC_Analysis_", date, "_", initials{1});
+            baseDir = fullfile(globals.homeDir, folderName);
+            if ~exist(baseDir,'dir')
+                mkdir(baseDir);
+            end
+        case "Cancel"
+            return
+    end
     dataDir = fullfile(baseDir, strcat('DataAnalysis_', globals.dataType));
     if ~exist(dataDir,'dir') %if directory doesn't exist
         mkdir(dataDir); %make it
     end 
-    
     for a=1:2  % number of analysis types
         if a==1
             handles.globals.analysisType = 'Absolute_Time';
@@ -850,7 +857,7 @@ function exportAnalysisButton_Callback(hObject, eventdata, handles)
     end 
     pcDatasets = handles.pcDatasets;
     save(fullfile(dataDir, 'pcDatasets.mat'),'pcDatasets');
-    % movefile(['ROIimages_' handles.global.dataType],folderName);
+    movefile(strcat('ROIimages_', handles.global.dataType),dataDir);
     set(handles.exportDone,'String','Export Completed!');
 
     guidata(hObject, handles);
