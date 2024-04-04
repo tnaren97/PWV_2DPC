@@ -95,7 +95,7 @@ updateLog(handles, "Loading centerline...");
 [clFile, clDir] = uigetfile({'*.mat','Useable Files (*.mat)';
    '*.mat',  'MATLAB files (*.mat)'; ...
    '*.*',  'All Files (*.*)'}, 'Select "anatCLdataset.mat" file');
-load([clDir clFile]);
+load(fullfile(clDir, clFile));
 handles.axial = anatCLdataset.Axial;
 %handles.coronal = anatCLdataset.Coronal;
 handles.sagittal = anatCLdataset.Sagittal;
@@ -291,7 +291,7 @@ catch
     updateLog(handles, "ERROR: No valid images found. Please try again.");
     return
 end
-udpateLog(handles, "Axial images loaded")
+updateLog(handles, "Axial images loaded")
 for i=1:length(dirInfo) %read all dcm files
     images(:,:,i) = single(dicomread(fullfile(anatomicalDir,dirInfo(i).name)));
 end  
@@ -376,7 +376,7 @@ xlabel('X (mm)');
 ylabel('Y (mm)');
 zlabel('Z (mm)');
 
-udpateLog(handles, "Axial points traced")
+updateLog(handles, "Axial points traced")
 
 set(handles.ImageSlider,'Enable','on'); 
 set(handles.MinContrastUpdate,'Enable','on'); 
@@ -526,7 +526,7 @@ set(handles.MinContrastUpdate,'Enable','on');
 set(handles.MaxContrastUpdate,'Enable','on'); 
 set(handles.UpdateSagittal,'String','Sagittal Data Loaded'); 
 updateAnatImages(handles)
-udpateLog(handles, "Sagittal images loaded")
+updateLog(handles, "Sagittal images loaded")
 
 guidata(hObject, handles);
 end
@@ -583,7 +583,7 @@ h = scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:), 32, ...
 alpha = 0.3;
 set(h,'MarkerEdgeAlpha',alpha,'MarkerFaceAlpha',alpha);
 legend('Location','southeast');
-udpateLog(handles, "Sagittal points traced")
+updateLog(handles, "Sagittal points traced")
 
 set(handles.ImageSlider,'Enable','on'); 
 set(handles.MinContrastUpdate,'Enable','on'); 

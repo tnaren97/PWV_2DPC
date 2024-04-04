@@ -456,12 +456,12 @@ function loadROIbutton_Callback(hObject, eventdata, handles)
         % cd([dataDir filesep 'ROIimages_' handles.global.dataType]); %move into it
         frame = getframe(handles.pcPlanePlot); %get a snapshot of the PC plane plot with ROI
         image = frame2im(frame); %make into image
-        imwrite(image,fullfile(roi_image_fold, handles.pcDatasets(planeNum).Names, '.png')) %write it out as PNG
+        imwrite(image,fullfile(roi_image_fold, strcat(handles.pcDatasets(planeNum).Names, '.png'))) %write it out as PNG
     else
         % cd([dataDir filesep 'ROIimages_' handles.global.dataType]); %if ROIimages already exists, move into it
         frame = getframe(handles.pcPlanePlot);
         image = frame2im(frame);
-        imwrite(image,fullfile(roi_image_fold, handles.pcDatasets(planeNum).Names, '.png'))
+        imwrite(image,fullfile(roi_image_fold, strcat(handles.pcDatasets(planeNum).Names, '.png')))
     end 
     % cd(handles.global.homeDir); %lets go back home
     
@@ -713,7 +713,7 @@ function exportAnalysisButton_Callback(hObject, eventdata, handles)
     if ~exist(baseDir,'dir')
         mkdir(baseDir);
     end 
-    dataDir = fullfile(baseDir, 'DataAnalysis_', globals.dataType);
+    dataDir = fullfile(baseDir, strcat('DataAnalysis_', globals.dataType));
     if ~exist(dataDir,'dir') %if directory doesn't exist
         mkdir(dataDir); %make it
     end 
@@ -828,7 +828,7 @@ function exportAnalysisButton_Callback(hObject, eventdata, handles)
         % cd([baseDir filesep dataDir]); %go to it
         % mkdir(analysisDir);
         % cd(globals.analysisType);
-        writetable(pwvTable,fullfile(analysisDir, 'Summary_', date, '.xlsx'), 'FileType','spreadsheet'); %write excel sheet for each interp
+        writetable(pwvTable,fullfile(analysisDir, strcat('Summary_', date, '.xlsx')), 'FileType','spreadsheet'); %write excel sheet for each interp
         %if strcmp(globals.interpType,'Gaussian')
         saveTTplots(handles, flow, analysisDir);
         %end 

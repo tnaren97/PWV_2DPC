@@ -1,5 +1,8 @@
 now = datestr(now,'mm/dd/yyyy');
 baseFolder = uigetdir(pwd, "Select PWV analysis folder");
+roi_rad = NaN;
+roi_cart = NaN;
+roi_SMS = NaN;
 
 %% Cartesian
 if exist([baseFolder filesep 'DataAnalysis_Cartesian'],'dir')
@@ -114,7 +117,7 @@ else
     xcor_pwv_SMS = NaN;
 end 
 
-params = {roi_rad roi_cart now scan_date mri_loc dx1_2 dx2_3 dx1_3 plane_dx ...
+params = {roi_cart roi_rad now scan_date mri_loc dx1_2 dx2_3 dx1_3 plane_dx ...
     ttp_pwv_CART ttf_pwv_CART ttu_pwv_CART xcor_pwv_CART TR_AAo_CART TR_AbdAo_CART ...
     ttp_pwv_radLR ttf_pwv_radLR ttu_pwv_radLR xcor_pwv_radLR TR_AAo_radLR TR_AbdAo_radLR ...
     ttp_pwv_radHR ttf_pwv_radHR ttu_pwv_radHR xcor_pwv_radHR TR_AAo_radHR TR_AbdAo_radHR ...
