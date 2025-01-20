@@ -22,7 +22,7 @@ function varargout = PWV_2DPC(varargin)
 
     % Edit the above text to modify the response to help PWV_2DPC
 
-    % Last Modified by GUIDE v2.5 15-Nov-2022 10:16:55
+    % Last Modified by GUIDE v2.5 19-Jan-2025 21:07:40
     % Developed by Grant S Roberts, University of Wisconsin-Madison, 2019
     
     
@@ -80,7 +80,6 @@ function PWV_2DPC_OpeningFcn(hObject, eventdata, handles, varargin)
     set(handles.pcPlanePopup,'Enable','off');
     set(handles.pcDatasetPopup,'Enable','off');
     set(handles.drawROIbutton,'Enable','off');
-    set(handles.loadROIbutton,'Enable','off');
     set(handles.pcSlider,'Enable','off');
     set(handles.interpolatePopup,'String',{'None','Gaussian','Shifted'}); %set all possible interpolation types
     set(handles.interpolatePopup,'Enable','off'); %initialize radios and buttons
@@ -124,17 +123,80 @@ end
     
 % --- LOAD 2DPC DATASETS - CALLBACK
 function load2DPCbutton_Callback(hObject, eventdata, handles)
-    [pcFile, pcDir] = uigetfile({'*.dcm;*.dat;*.mat;*.h5','Useable Files (*.dcm,*.dat,*.mat,*.h5)';
-       '*.dcm',  'DICOM files (*.dcm)'; ...
-       '*.dat',  'DAT-files (*.dat)'; ...
-       '*.mat',  'MAT-files (*.mat)'; ...
-       '*.h5',   'HDF5-files (*.h5)'; ...
-       '*.*',    'All Files (*.*)'}, 'Select ONE 2DPC file in the dataset');
+    list_options = {'Cartesian','radial low-res','radial high-res', 'SMS', 'mat'};
+    [choice, ~] = listdlg('ListString', list_options, 'InitialValue', 1, 'PromptString', "Choose a data type", 'SelectionMode', 'single');
+    dataType = list_options{choice};
+%     [pcFile, pcDir] = uigetfile({'*.dcm;*.dat;*.mat;*.h5','Useable Files (*.dcm,*.dat,*.mat,*.h5)';
+%        '*.dcm',  'DICOM files (*.dcm)'; ...
+%        '*.dat',  'DAT-files (*.dat)'; ...
+%        '*.mat',  'MAT-files (*.mat)'; ...
+%        '*.h5',   'HDF5-files (*.h5)'; ...
+%        '*.*',    'All Files (*.*)'}, 'Select ONE 2DPC file in the dataset');
     % pcDir = uigetdir();
-    pcIter = handles.global.pcIter;
-    [~,~,extension] = fileparts(pcFile);
-    dirInfo = dir(fullfile(pcDir,['*' extension]));
-    if isequal(extension,'.dcm') %if our extension is a dicom file
+%     pcIter = handles.global.pcIter;
+%     [~,~,extension] = fileparts(pcFile);
+    
+    switch dataType
+        case "Cartesian"
+            scans = ["*PWV*CartBH*AAo", "*PWV*CartBH*AbdAo"];
+            for z=1:2
+                try
+                    scanInfo = dir(scans(z));
+                    scanPath = fullfile(scanInfo(1).folder, scanInfo(1).name);
+                    [handles, hObject] = load_dcm(handles, hObject, scanPath);
+                catch
+                    scan = uigetdir();
+                    [handles, hObject] = load_dcm(handles, hObject, scan);
+                end
+            end
+        case "radial low-res"
+            scans = ["*pwv-radial*AAo", "*pwv-radial*AbdAo"];
+            resType = "RECON*standard*";
+            for z=1:2
+                try
+                    scanInfo = dir(scans(z));
+                    reconInfo = dir(fullfile(scanInfo(1).folder, scanInfo(1).name, resType));
+                    [handles, hObject] = load_rad_dat(handles, hObject, fullfile(reconInfo(1).folder, reconInfo(1).name, "dat"));
+                catch
+                    scan = uigetdir();
+                    [handles, hObject] = load_rad_dat(handles, hObject, scan);
+                end
+            end
+
+        case "radial high-res"
+            scans = ["*pwv-radial*AAo", "*pwv-radial*AbdAo"];
+            resType = "RECON*llr*";
+            for z=1:2
+                try
+                    scanInfo = dir(scans(z));
+                    reconInfo = dir(fullfile(scanInfo(1).folder, scanInfo(1).name, resType));
+                    [handles, hObject] = load_rad_dat(handles, hObject, fullfile(reconInfo(1).folder, reconInfo(1).name, "dat"));
+                catch
+                    scan = uigetdir();
+                    [handles, hObject] = load_rad_dat(handles, hObject, scan);
+                end
+            end
+
+        case "SMS"
+            scanInfo = dir("*pwv-radial*SMS");
+            scanPath = fullfile(scanInfo(1).folder, scanInfo(1).name, "SMS_2DPC", "dat");
+            scans = ["AAo_nofov.h5", "AbdAo_nofov.h5"];
+            for z=1:2
+                try
+                    [handles, hObject] = load_sms_h5(handles, hObject, scanPath, scans(z));
+                catch
+                    [scan, scanPath] = uigetfile();
+                    [handles, hObject] = load_sms_h5(handles, hObject, scanPath, scan);
+                end
+            end
+
+        otherwise
+            [handles, hObject] = load_mat(handles, hObject);
+    end
+   
+    function [handles, hObject] = load_dcm(handles, hObject, pcDir)
+        pcIter = handles.global.pcIter;
+        dirInfo = dir(fullfile(pcDir, "*.dcm"));
         handles.global.dataType = 'Cartesian';
         handles.pcDatasets(pcIter).Info = dicominfo(fullfile(pcDir,dirInfo(1).name)); %get dicom metadata (from 1st dicom)
         for i=1:length(dirInfo)
@@ -154,8 +216,23 @@ function load2DPCbutton_Callback(hObject, eventdata, handles)
         handles.pcDatasets(pcIter).Images.mag = mag;
         handles.pcDatasets(pcIter).Images.v = v; 
         handles.pcDatasets(pcIter).Names = ['Plane' num2str(pcIter)];
-    elseif isequal(extension,'.dat')
-        fid = fopen([pcDir filesep 'pcvipr_header.txt'], 'r'); %open header
+
+        set(handles.planeLoadedText,'String',['Plane #' num2str(handles.global.pcIter) ' Loaded']);
+        set(handles.pcPlanePopup,'Enable','on');
+        set(handles.pcDatasetPopup,'Enable','on');
+        set(handles.drawROIbutton,'Enable','on');
+        set(handles.pcSlider,'Enable','on');
+        set(handles.pcPlanePopup,'String',{handles.pcDatasets.Names}); %list of all planes (AAo, AbdAo, etc.)
+        set(handles.pcDatasetPopup,'String',fieldnames(handles.pcDatasets(handles.global.pcIter).Images)); %list of all datasets (CD, MAG, v, etc.)
+
+        handles.global.pcIter = handles.global.pcIter + 1;
+        guidata(hObject, handles);
+        updatePCImages(handles);
+    end
+
+    function [handles, hObject] = load_rad_dat(handles, hObject, pcDir)
+        pcIter = handles.global.pcIter;
+        fid = fopen(fullfile(pcDir,'pcvipr_header.txt'), 'r'); %open header
         dataArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
             'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
         fclose(fid);
@@ -203,8 +280,23 @@ function load2DPCbutton_Callback(hObject, eventdata, handles)
         handles.pcDatasets(pcIter).Images.cd = flipud(cd);
         handles.pcDatasets(pcIter).Images.v = flipud(v); 
         handles.pcDatasets(pcIter).Names = ['Plane' num2str(pcIter)];
-    elseif isequal(extension,'.h5')
-        fid = fopen([pcDir filesep 'pcvipr_header.txt'], 'r'); %open header
+
+        set(handles.planeLoadedText,'String',['Plane #' num2str(handles.global.pcIter) ' Loaded']);
+        set(handles.pcPlanePopup,'Enable','on');
+        set(handles.pcDatasetPopup,'Enable','on');
+        set(handles.drawROIbutton,'Enable','on');
+        set(handles.pcSlider,'Enable','on');
+        set(handles.pcPlanePopup,'String',{handles.pcDatasets.Names}); %list of all planes (AAo, AbdAo, etc.)
+        set(handles.pcDatasetPopup,'String',fieldnames(handles.pcDatasets(handles.global.pcIter).Images)); %list of all datasets (CD, MAG, v, etc.)
+
+        handles.global.pcIter = handles.global.pcIter + 1;
+        guidata(hObject, handles);
+        updatePCImages(handles);
+    end
+
+    function [handles, hObject] = load_sms_h5(handles, hObject, pcDir, pcFile)
+        pcIter = handles.global.pcIter;
+        fid = fopen(fullfile(pcDir,'pcvipr_header.txt'), 'r'); %open header
         dataArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
             'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
         fclose(fid);
@@ -233,7 +325,23 @@ function load2DPCbutton_Callback(hObject, eventdata, handles)
         handles.pcDatasets(pcIter).Images.cd = flipud(cd);
         handles.pcDatasets(pcIter).Images.v = flipud(v); 
         handles.pcDatasets(pcIter).Names = ['Plane' num2str(pcIter)];
-    else %if a single matlab file (with all images)
+
+        set(handles.planeLoadedText,'String',['Plane #' num2str(handles.global.pcIter) ' Loaded']);
+        set(handles.pcPlanePopup,'Enable','on');
+        set(handles.pcDatasetPopup,'Enable','on');
+        set(handles.drawROIbutton,'Enable','on');
+        set(handles.pcSlider,'Enable','on');
+        set(handles.pcPlanePopup,'String',{handles.pcDatasets.Names}); %list of all planes (AAo, AbdAo, etc.)
+        set(handles.pcDatasetPopup,'String',fieldnames(handles.pcDatasets(handles.global.pcIter).Images)); %list of all datasets (CD, MAG, v, etc.)
+
+        handles.global.pcIter = handles.global.pcIter + 1;
+        guidata(hObject, handles);
+        updatePCImages(handles);
+    end
+
+    function [handles, hObject] = load_mat(handles, hObject)
+        [pcFile, pcDir] = uigetfile();
+        pcIter = handles.global.pcIter;
         handles.global.isRadial = 1;
         hold = load([pcDir pcFile]);
         planeName = fieldnames(hold);
@@ -249,19 +357,20 @@ function load2DPCbutton_Callback(hObject, eventdata, handles)
         handles.pcDatasets(pcIter).Images.cd = images(:,:,:,2);
         handles.pcDatasets(pcIter).Images.v = images(:,:,:,3);
         handles.pcDatasets(pcIter).Names = planeName;
+
+        set(handles.planeLoadedText,'String',['Plane #' num2str(handles.global.pcIter) ' Loaded']);
+        set(handles.pcPlanePopup,'Enable','on');
+        set(handles.pcDatasetPopup,'Enable','on');
+        set(handles.drawROIbutton,'Enable','on');
+        set(handles.pcSlider,'Enable','on');
+        set(handles.pcPlanePopup,'String',{handles.pcDatasets.Names}); %list of all planes (AAo, AbdAo, etc.)
+        set(handles.pcDatasetPopup,'String',fieldnames(handles.pcDatasets(handles.global.pcIter).Images)); %list of all datasets (CD, MAG, v, etc.)
+
+        handles.global.pcIter = handles.global.pcIter + 1;
+        guidata(hObject, handles);
+        updatePCImages(handles);
     end
-    set(handles.planeLoadedText,'String',['Plane #' num2str(handles.global.pcIter) ' Loaded']);
-    handles.global.pcIter = handles.global.pcIter + 1;
-    
-    set(handles.pcPlanePopup,'Enable','on');
-    set(handles.pcDatasetPopup,'Enable','on');
-    set(handles.drawROIbutton,'Enable','on');
-    set(handles.loadROIbutton,'Enable','on');
-    set(handles.pcSlider,'Enable','on');
-    set(handles.pcPlanePopup,'String',{handles.pcDatasets.Names}); %list of all planes (AAo, AbdAo, etc.)
-    set(handles.pcDatasetPopup,'String',fieldnames(handles.pcDatasets(pcIter).Images)); %list of all datasets (CD, MAG, v, etc.)
-    guidata(hObject, handles);
-    updatePCImages(handles);
+
 end  
 
     
@@ -310,12 +419,8 @@ function drawROIbutton_Callback(hObject, eventdata, handles)
     end 
 
     guidata(hObject,handles);
-    updatePCImages(handles); 
-end
-    
+    updatePCImages(handles);
 
-% --- LOAD ROI BUTTON - CALLBACK
-function loadROIbutton_Callback(hObject, eventdata, handles)
     planeNum = get(handles.pcPlanePopup,'Value'); %get current plane (eg AAo)
     handles.global.totalROIs = handles.global.totalROIs + 1; %add 1 to total ROI count
 
@@ -480,7 +585,6 @@ function loadROIbutton_Callback(hObject, eventdata, handles)
         end 
     end 
 
-    set(handles.interpolatePopup,'Enable','on'); %turn on interpolate button
     plotVelocity(handles); %plot flow curves
     
     set(handles.loadCLpush,'Enable','on');
@@ -489,12 +593,15 @@ function loadROIbutton_Callback(hObject, eventdata, handles)
     set(handles.pcDatasetPopup,'Enable','on'); %make it so we can't select another plane
     set(handles.drawROIbutton,'Enable','on');
     set(handles.interpolatePopup,'Enable','on'); %set all possible interpolation types
+    set(handles.interpolatePopup, 'Value', 3);
+    handles.global.interpType = 'Shifted';
+    set(handles.pgShift,'Enable','on');
     set(handles.errorBarRadio,'Enable','on');
 
     guidata(hObject,handles);
     updatePCImages(handles); %update images (to remove green ROI circle)
     axes(handles.pcPlanePlot); %make sure we're still on PC plot
-end 
+end
 
     
 %%%%%%%%%%%% VELOCITY PLOT %%%%%%%%%%%%%%
@@ -1527,4 +1634,12 @@ end
 function averageData_CreateFcn(hObject, eventdata, handles)
 end
 
-
+% --- Executes on button press in Reset.
+function Reset_Callback(hObject, eventdata, handles)
+    % hObject    handle to Reset (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    
+close(gcf);
+PWV_2DPC()
+end

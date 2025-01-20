@@ -22,7 +22,7 @@ function varargout = DrawCenterlines(varargin)
 
 % Edit the above text to modify the response to help DrawCenterlines
 
-% Last Modified by GUIDE v2.5 25-Mar-2024 18:15:26
+% Last Modified by GUIDE v2.5 19-Jan-2025 20:59:10
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -282,7 +282,12 @@ function LoadAxialPush_Callback(hObject, eventdata, handles)
 %    '*.*',  'All Files (*.*)'}, 'Select ONE Axial DICOM image');
 % [~,~,extension] = fileparts(anatomicalFile); %get file extension
 updateLog(handles, "Loading axial images...");
-anatomicalDir = uigetdir();
+try
+    scanInfo = dir("dicoms/*Ax*FIESTA*");
+    anatomicalDir = fullfile(scanInfo(1).folder, scanInfo(1).name);
+catch
+    anatomicalDir = uigetdir();
+end
 dirInfo = dir(fullfile(anatomicalDir,'*.d*c*m'));
 try
     handles.axial.Info = dicominfo(fullfile(anatomicalDir,dirInfo(1).name));
@@ -493,7 +498,12 @@ handles.CurrView = 'Sagittal';
 %    '*.*',  'All Files (*.*)'}, 'Select ONE Axial DICOM image');
 % [~,~,extension] = fileparts(anatomicalFile); %get file extension
 updateLog(handles, "Loading sagittal images...");
-anatomicalDir = uigetdir();
+try
+    scanInfo = dir("dicoms/*Sag*FIESTA*");
+    anatomicalDir = fullfile(scanInfo(1).folder, scanInfo(1).name);
+catch
+    anatomicalDir = uigetdir();
+end
 dirInfo = dir(fullfile(anatomicalDir,'*.d*c*m'));
 try
     handles.sagittal.Info = dicominfo(fullfile(anatomicalDir,dirInfo(1).name));
@@ -595,306 +605,344 @@ end
 
 % --- Executes on button press in Seg2DCartPush.
 function Seg2DCartPush_Callback(hObject, eventdata, handles)
-handles.CurrView = '2DCartesian';
-handles.modality = 'cart';
-cartIter = handles.CurrCartesian;
-% [anatomicalFile, anatomicalDir] = uigetfile({'*.dcm;*.dicom;','Useable Files (*.dcm,*.dicom)';
-%    '*.dcm',  'DICOM files (*.dcm)'; ...
-%    '*.dicom','DICOM-files (*.dicom)'; ...
-%    '*.*',  'All Files (*.*)'}, 'Select ONE Axial DICOM image');
-% [~,~,extension] = fileparts(anatomicalFile); %get file extension
-updateLog(handles, sprintf("Loading Cartesian plane %d...", cartIter));
-anatomicalDir = uigetdir();
-dirInfo = dir(fullfile(anatomicalDir,'*.d*c*m'));
-try
-    handles.cartesian(cartIter).Info = dicominfo(fullfile(anatomicalDir,dirInfo(1).name));
-catch
-    disp("ERROR: No valid images found. Please try again.")
-    updateLog(handles, "ERROR: No valid images found. Please try again.");
-    return
+for d=1:2
+    handles.CurrView = '2DCartesian';
+    handles.modality = 'cart';
+    cartIter = handles.CurrCartesian;
+    % [anatomicalFile, anatomicalDir] = uigetfile({'*.dcm;*.dicom;','Useable Files (*.dcm,*.dicom)';
+    %    '*.dcm',  'DICOM files (*.dcm)'; ...
+    %    '*.dicom','DICOM-files (*.dicom)'; ...
+    %    '*.*',  'All Files (*.*)'}, 'Select ONE Axial DICOM image');
+    % [~,~,extension] = fileparts(anatomicalFile); %get file extension
+    updateLog(handles, sprintf("Loading Cartesian plane %d...", cartIter));
+    
+    scans = ["*PWV*CartBH*AAo", "*PWV*CartBH*AbdAo"];
+    try
+        scanInfo = dir(scans(cartIter));
+        anatomicalDir = fullfile(scanInfo(1).folder, scanInfo(1).name);
+    catch
+        anatomicalDir = uigetdir();
+    end
+    
+    dirInfo = dir(fullfile(anatomicalDir,'*.d*c*m'));
+    try
+        handles.cartesian(cartIter).Info = dicominfo(fullfile(anatomicalDir,dirInfo(1).name));
+    catch
+        disp("ERROR: No valid images found. Please try again.")
+        updateLog(handles, "ERROR: No valid images found. Please try again.");
+        return
+    end
+    
+    for i=1:length(dirInfo) %read all dcm files
+        images(:,:,i) = single(dicomread(fullfile(anatomicalDir,dirInfo(i).name)));
+    end  
+    mag = images(:,:,(size(images,3)/2)+1:end);
+    MAG = mean(mag,3);
+    
+    handles.cartesian(cartIter).Images = rescale(MAG);
+    originShift = [handles.cartesian(cartIter).Info.ImagePositionPatient;1]; % origin is top left corner of image
+    xres = handles.cartesian(cartIter).Info.PixelSpacing(1);
+    yres = handles.cartesian(cartIter).Info.PixelSpacing(2);
+    zres = handles.cartesian(cartIter).Info.SliceThickness;
+    
+    % sometimes get extremely small values that should be 0, so round
+    xVector = round(handles.cartesian(cartIter).Info.ImageOrientationPatient(1:3),8); % what direction rows run w/r/to x
+    yVector = round(handles.cartesian(cartIter).Info.ImageOrientationPatient(4:6),8); % what direction the cols run w/r/to y
+    zVector = [cross(xVector,yVector);0];
+    
+    xVector = [xVector;0];
+    yVector = [yVector;0];
+    handles.cartesian(cartIter).RotationMatrix = ...
+    [xres*xVector yres*yVector zres*zVector originShift]; % turn vectors into matrices
+    
+    axes(handles.AnatDisplay); %force axes to anatomical plot
+    
+    rot = handles.cartesian(cartIter).RotationMatrix;
+    minc = str2double(get(handles.MinContrastUpdate,'String'));
+    maxc = str2double(get(handles.MaxContrastUpdate,'String'));
+    
+    imshow(handles.cartesian(cartIter).Images,[minc maxc]);
+    [x,y] = getpts(); %draw points on image along aorta
+    updateLog(handles, 'Aorta points selected');
+    z = (ones(size(x,1),1)); %add z-coordinates for slice
+    dummy = ones(size(x));
+    points = [x, y, z, dummy]';
+
+    POINTS = zeros(size(points));
+    
+    for j=1:size(points,2)
+        POINTS(:,j) = rot*points(:,j);
+    end 
+    points(4,:) = [];
+    POINTS(4,:) = [];
+    handles.cartesian(cartIter).points = points;
+    handles.cartesian(cartIter).POINTS = POINTS;
+    axes(handles.CenterlineDisplay); hold on;
+    scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'b*', ...
+        'LineWidth',4, ...
+        'DisplayName','Cartesian');
+    if handles.CurrCartesian == 1
+        legend('Location','southeast', 'AutoUpdate','off');
+    end
+    
+    handles.CurrCartesian = handles.CurrCartesian + 1;
+    guidata(hObject, handles);
 end
-
-for i=1:length(dirInfo) %read all dcm files
-    images(:,:,i) = single(dicomread(fullfile(anatomicalDir,dirInfo(i).name)));
-end  
-mag = images(:,:,(size(images,3)/2)+1:end);
-MAG = mean(mag,3);
-
-handles.cartesian(cartIter).Images = rescale(MAG);
-originShift = [handles.cartesian(cartIter).Info.ImagePositionPatient;1]; % origin is top left corner of image
-xres = handles.cartesian(cartIter).Info.PixelSpacing(1);
-yres = handles.cartesian(cartIter).Info.PixelSpacing(2);
-zres = handles.cartesian(cartIter).Info.SliceThickness;
-
-% sometimes get extremely small values that should be 0, so round
-xVector = round(handles.cartesian(cartIter).Info.ImageOrientationPatient(1:3),8); % what direction rows run w/r/to x
-yVector = round(handles.cartesian(cartIter).Info.ImageOrientationPatient(4:6),8); % what direction the cols run w/r/to y
-zVector = [cross(xVector,yVector);0];
-
-xVector = [xVector;0];
-yVector = [yVector;0];
-handles.cartesian(cartIter).RotationMatrix = ...
-[xres*xVector yres*yVector zres*zVector originShift]; % turn vectors into matrices
-
-axes(handles.AnatDisplay); %force axes to anatomical plot
-
-rot = handles.cartesian(cartIter).RotationMatrix;
-minc = str2double(get(handles.MinContrastUpdate,'String'));
-maxc = str2double(get(handles.MaxContrastUpdate,'String'));
-
-imshow(handles.cartesian(cartIter).Images,[minc maxc]);
-[x,y] = getpts(); %draw points on image along aorta
-updateLog(handles, 'Aorta points selected');
-z = (ones(size(x,1),1)); %add z-coordinates for slice
-dummy = ones(size(x));
-points = [x, y, z, dummy]';
-
-for j=1:size(points,2)
-    POINTS(:,j) = rot*points(:,j);
-end 
-points(4,:) = [];
-POINTS(4,:) = [];
-handles.cartesian(cartIter).points = points;
-handles.cartesian(cartIter).POINTS = POINTS;
-axes(handles.CenterlineDisplay); hold on;
-scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'b*', ...
-    'LineWidth',4, ...
-    'DisplayName','Cartesian');
-if handles.CurrCartesian == 1
-    legend('Location','southeast', 'AutoUpdate','off');
-end
-
-handles.CurrCartesian = cartIter + 1;
-guidata(hObject, handles);
 end
 
 
 % --- Executes on button press in SegSMSPush.
 function Seg2DRadialPush_Callback(hObject, eventdata, handles)
-handles.CurrView = '2DRadial';
-handles.modality = 'rad';
-radIter = handles.CurrRadial;
-updateLog(handles, sprintf("Loading radial plane %d...", radIter));
+for d=1:2
+    handles.CurrView = '2DRadial';
+    handles.modality = 'rad';
+    radIter = handles.CurrRadial;
+    updateLog(handles, sprintf("Loading radial plane %d...", radIter));
+    
+    % [pcFile, pcDir] = uigetfile({'*.dat','Useable Files (*.dat)';
+    %        '*.dat',  'DAT-files (*.dat)'; ...
+    %        '*.*',    'All Files (*.*)'}, 'Select ONE 2DPC file in the dataset');
+    % pcDir = uigetdir();
+    
+    try 
+        scans = ["*pwv-radial*AAo", "*pwv-radial*AbdAo"];
+        resType = "RECON*standard*";
+        scanInfo = dir(scans(radIter));
+        reconInfo = dir(fullfile(scanInfo(1).folder, scanInfo(1).name, resType));
+        pcDir = fullfile(reconInfo(1).folder, reconInfo(1).name, "dat");
+    catch
+        pcDir = uigetdir();
+    end
+    
+    fid = fopen(fullfile(pcDir,'pcvipr_header.txt'), 'r'); %open header
+    try
+        dataArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
+            'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
+    catch
+        disp("ERROR: No valid images found. Please try again.")
+        updateLog(handles, "ERROR: No valid images found. Please try again.");
+        return
+    end
+    fclose(fid);
+    dataArray{1,2} = cellfun(@str2num,dataArray{1,2}(:),'UniformOutput',false);
+    pcviprHeader = cell2struct(dataArray{1,2}(:),dataArray{1,1}(:),1); %turn to structure
+    handles.radial(radIter).Info = pcviprHeader; %add pcvipr header to handles
+    
+    resx = pcviprHeader.matrixx; %resolution in x
+    resy = pcviprHeader.matrixy; %resolution in y
+    
+    MAG = load_dat(fullfile(pcDir,'MAG.dat'),[resx resy]); %Average magnitude
+    MAG = flipud(imresize(MAG, 0.8906));
+    % MAG = flipud(MAG);
+    handles.radial(radIter).Images = rescale(MAG);
+    
+    ix = pcviprHeader.ix;
+    iy = pcviprHeader.iy;
+    iz = pcviprHeader.iz;
+    jx = pcviprHeader.jx;
+    jy = pcviprHeader.jy;
+    jz = pcviprHeader.jz;
+    kx = pcviprHeader.kx;
+    ky = pcviprHeader.ky;
+    kz = pcviprHeader.kz;
+    sx = pcviprHeader.sx;
+    sy = pcviprHeader.sy;
+    sz = pcviprHeader.sz;
+    
+    originShift = [sx; sy; sz; 1];
+    % originShift = [0; 0; sz; 1];
+    
+    xVector = round([ix;iy;iz;0],8); % what direction rows run w/r/to x
+    yVector = round([jx;jy;jz;0],8); % what direction the cols run w/r/to y
+    zVector = round([kx;ky;kz;0],8); % what direction the cols run w/r/to z
+    
+    handles.radial(radIter).RotationMatrix = [xVector yVector zVector originShift];
+    % handles.radial(radIter).RotationMatrix = [[0;0;0;0] [0;0;0;0] [0;0;0;0] [0;0;0;0]];
+    
+    axes(handles.AnatDisplay); %force axes to anatomical plot
+    rot = handles.radial(radIter).RotationMatrix;
+    % disp(rot)
+    minc = str2double(get(handles.MinContrastUpdate,'String'));
+    maxc = str2double(get(handles.MaxContrastUpdate,'String'));
+    
+    % imshow(flipud(imresize(handles.radial(radIter).Images, 0.8906)),[minc maxc]);
+    imshow(handles.radial(radIter).Images, [minc maxc]);
+    [y,x] = getpts(); %draw points on image along aorta
+    updateLog(handles, 'Aorta points selected');
+    x = pcviprHeader.matrixx - x;
+    % y = pcviprHeader.matrixy - y;
+    % x = imageDim(2) - x;
+    % y = imageDim(1) - y;
+    z = (ones(size(x,1),1)); %add z-coordinates for slice
+    dummy = ones(size(x));
+    points = [x, y, z, dummy]';
 
-% [pcFile, pcDir] = uigetfile({'*.dat','Useable Files (*.dat)';
-%        '*.dat',  'DAT-files (*.dat)'; ...
-%        '*.*',    'All Files (*.*)'}, 'Select ONE 2DPC file in the dataset');
-pcDir = uigetdir();
-
-fid = fopen([pcDir filesep 'pcvipr_header.txt'], 'r'); %open header
-try
-    dataArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
-        'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
-catch
-    disp("ERROR: No valid images found. Please try again.")
-    updateLog(handles, "ERROR: No valid images found. Please try again.");
-    return
+    POINTS = zeros(size(points));
+    
+    for j=1:size(points,2)
+        POINTS(:,j) = rot*points(:,j);
+        % POINTS(2,j) = -POINTS(2,j);
+    end
+    axes(handles.CenterlineDisplay); hold on;
+    scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
+        'LineWidth',12,'DisplayName','Radial');
+    if handles.CurrRadial == 1
+        legend('Location','southeast', 'AutoUpdate','off');
+    end
+    
+    points(4,:) = [];
+    POINTS(4,:) = [];
+    handles.radial(radIter).points = points;
+    handles.radial(radIter).POINTS = POINTS;
+    handles.CurrRadial = radIter + 1;
+    guidata(hObject, handles);
 end
-fclose(fid);
-dataArray{1,2} = cellfun(@str2num,dataArray{1,2}(:),'UniformOutput',false);
-pcviprHeader = cell2struct(dataArray{1,2}(:),dataArray{1,1}(:),1); %turn to structure
-handles.radial(radIter).Info = pcviprHeader; %add pcvipr header to handles
-
-resx = pcviprHeader.matrixx; %resolution in x
-resy = pcviprHeader.matrixy; %resolution in y
-
-MAG = load_dat(fullfile(pcDir,'MAG.dat'),[resx resy]); %Average magnitude
-MAG = flipud(imresize(MAG, 0.8906));
-% MAG = flipud(MAG);
-handles.radial(radIter).Images = rescale(MAG);
-
-ix = pcviprHeader.ix;
-iy = pcviprHeader.iy;
-iz = pcviprHeader.iz;
-jx = pcviprHeader.jx;
-jy = pcviprHeader.jy;
-jz = pcviprHeader.jz;
-kx = pcviprHeader.kx;
-ky = pcviprHeader.ky;
-kz = pcviprHeader.kz;
-sx = pcviprHeader.sx;
-sy = pcviprHeader.sy;
-sz = pcviprHeader.sz;
-
-originShift = [sx; sy; sz; 1];
-% originShift = [0; 0; sz; 1];
-
-xVector = round([ix;iy;iz;0],8); % what direction rows run w/r/to x
-yVector = round([jx;jy;jz;0],8); % what direction the cols run w/r/to y
-zVector = round([kx;ky;kz;0],8); % what direction the cols run w/r/to z
-
-handles.radial(radIter).RotationMatrix = [xVector yVector zVector originShift];
-% handles.radial(radIter).RotationMatrix = [[0;0;0;0] [0;0;0;0] [0;0;0;0] [0;0;0;0]];
-
-axes(handles.AnatDisplay); %force axes to anatomical plot
-rot = handles.radial(radIter).RotationMatrix;
-% disp(rot)
-minc = str2double(get(handles.MinContrastUpdate,'String'));
-maxc = str2double(get(handles.MaxContrastUpdate,'String'));
-
-% imshow(flipud(imresize(handles.radial(radIter).Images, 0.8906)),[minc maxc]);
-imshow(handles.radial(radIter).Images, [minc maxc]);
-[y,x] = getpts(); %draw points on image along aorta
-updateLog(handles, 'Aorta points selected');
-x = pcviprHeader.matrixx - x;
-% y = pcviprHeader.matrixy - y;
-% x = imageDim(2) - x;
-% y = imageDim(1) - y;
-z = (ones(size(x,1),1)); %add z-coordinates for slice
-dummy = ones(size(x));
-points = [x, y, z, dummy]';
-
-for j=1:size(points,2)
-    POINTS(:,j) = rot*points(:,j);
-    % POINTS(2,j) = -POINTS(2,j);
-end
-axes(handles.CenterlineDisplay); hold on;
-scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
-    'LineWidth',12,'DisplayName','Radial');
-if handles.CurrRadial == 1
-    legend('Location','southeast', 'AutoUpdate','off');
-end
-
-points(4,:) = [];
-POINTS(4,:) = [];
-handles.radial(radIter).points = points;
-handles.radial(radIter).POINTS = POINTS;
-handles.CurrRadial = radIter + 1;
-guidata(hObject, handles);
 end
 
 
 % --- Executes on button press in SegSMSPush.
 function SegSMSPush_Callback(hObject, eventdata, handles)
-handles.CurrView = '2DSMS';
-handles.modality = 'sms';
-smsIter = handles.CurrSMS;
-updateLog(handles, sprintf("Loading SMS plane %d...", smsIter));
-
-[hdf5File, hdf5Dir] = uigetfile({'*.h5','Useable Files (*.h5)';
-   '*.h5',  'HDF5 files (*.h5)'; ...
-   '*.*',  'All Files (*.*)'}, 'Select the AAo.h5 or AbdAo.h5 file');
-try
-    hdf5Info = h5info(fullfile(hdf5Dir,hdf5File));
-catch
-    disp("ERROR: No valid images found. Please try again.")
-    updateLog(handles, "ERROR: No valid images found. Please try again.");
-    return
-end
-imageDim = hdf5Info.Datasets(4).Dataspace.Size;
-
-fid = fopen([hdf5Dir 'pcvipr_header.txt'], 'r'); %open header
-dataArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
-    'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
-fclose(fid);
-dataArray{1,2} = cellfun(@str2num,dataArray{1,2}(:),'UniformOutput',false);
-pcviprHeader = cell2struct(dataArray{1,2}(:),dataArray{1,1}(:),1); %turn to structure
-handles.sms(smsIter).Info = pcviprHeader; %add pcvipr header to handles
-
-mag = h5read(fullfile(hdf5Dir,hdf5File),'/MAG');
-% MAG = mean(mag, 3);
-MAG = flipud(mean(mag,3));
-% MAG = fliplr(mean(MAG,3));
-handles.sms(smsIter).Images = rescale(MAG);
-
-ix = pcviprHeader.ix;
-iy = pcviprHeader.iy;
-iz = pcviprHeader.iz;
-jx = pcviprHeader.jx;
-jy = pcviprHeader.jy;
-jz = pcviprHeader.jz;
-kx = pcviprHeader.kx;
-ky = pcviprHeader.ky;
-kz = pcviprHeader.kz;
-sx = pcviprHeader.sx;
-sy = pcviprHeader.sy;
-sz = pcviprHeader.sz;
-
-try
-    fid = fopen([hdf5Dir 'sms_fov.txt'], 'r');
-    SMS_fov = fscanf(fid, '%f');
+for d=1:2
+    handles.CurrView = '2DSMS';
+    handles.modality = 'sms';
+    smsIter = handles.CurrSMS;
+    updateLog(handles, sprintf("Loading SMS plane %d...", smsIter));
+    
+    try
+        scanInfo = dir("*pwv-radial*SMS");
+        hdf5Dir = fullfile(scanInfo(1).folder, scanInfo(1).name, "SMS_2DPC", "dat");
+        scans = ["AAo_nofov.h5", "AbdAo_nofov.h5"];
+        hdf5File = scans(smsIter);
+    catch
+        [hdf5File, hdf5Dir] = uigetfile({'*.h5','Useable Files (*.h5)';
+       '*.h5',  'HDF5 files (*.h5)'; ...
+       '*.*',  'All Files (*.*)'}, 'Select the AAo.h5 or AbdAo.h5 file');
+    end
+    
+    try
+        hdf5Info = h5info(fullfile(hdf5Dir,hdf5File));
+    catch
+        disp("ERROR: No valid images found. Please try again.")
+        updateLog(handles, "ERROR: No valid images found. Please try again.");
+        return
+    end
+    imageDim = hdf5Info.Datasets(4).Dataspace.Size;
+    
+    fid = fopen(fullfile(hdf5Dir, 'pcvipr_header.txt'), 'r'); %open header
+    dataArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
+        'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
     fclose(fid);
-    SMS_gap = SMS_fov/4;
-catch
-    SMS_gap = 78;
+    dataArray{1,2} = cellfun(@str2num,dataArray{1,2}(:),'UniformOutput',false);
+    pcviprHeader = cell2struct(dataArray{1,2}(:),dataArray{1,1}(:),1); %turn to structure
+    handles.sms(smsIter).Info = pcviprHeader; %add pcvipr header to handles
+    
+    mag = h5read(fullfile(hdf5Dir,hdf5File),'/MAG');
+    % MAG = mean(mag, 3);
+    MAG = flipud(mean(mag,3));
+    % MAG = fliplr(mean(MAG,3));
+    handles.sms(smsIter).Images = rescale(MAG);
+    
+    ix = pcviprHeader.ix;
+    iy = pcviprHeader.iy;
+    iz = pcviprHeader.iz;
+    jx = pcviprHeader.jx;
+    jy = pcviprHeader.jy;
+    jz = pcviprHeader.jz;
+    kx = pcviprHeader.kx;
+    ky = pcviprHeader.ky;
+    kz = pcviprHeader.kz;
+    sx = pcviprHeader.sx;
+    sy = pcviprHeader.sy;
+    sz = pcviprHeader.sz;
+    
+    try
+        fid = fopen([hdf5Dir 'sms_fov.txt'], 'r');
+        SMS_fov = fscanf(fid, '%f');
+        fclose(fid);
+        SMS_gap = SMS_fov/4;
+    catch
+        SMS_gap = 78;
+    end
+    % SMS_gap = 90; %180mm about sz
+    if contains(hdf5File,'AAo')
+        sz = sz + SMS_gap;
+    else
+        sz = sz - SMS_gap;
+    end 
+    originShift = [sx; sy; sz; 1];
+    % originShift = [0; 0; sz; 1];
+    
+    xVector = round([ix;iy;iz;0],8); % what direction rows run w/r/to x
+    yVector = round([jx;jy;jz;0],8); % what direction the cols run w/r/to y
+    zVector = round([kx;ky;kz;0],8); % what direction the cols run w/r/to z
+    
+    handles.sms(smsIter).RotationMatrix = [xVector yVector zVector originShift];
+    % handles.sms(smsIter).RotationMatrix = [[0;0;0;0] [0;0;0;0] [0;0;0;0] [0;0;0;0]];
+    
+    axes(handles.AnatDisplay); %force axes to anatomical plot
+    rot = handles.sms(smsIter).RotationMatrix;
+    % disp(rot)
+    minc = str2double(get(handles.MinContrastUpdate,'String'));
+    maxc = str2double(get(handles.MaxContrastUpdate,'String'));
+    
+    imshow(handles.sms(smsIter).Images,[minc maxc]);
+    [y,x] = getpts(); %draw points on image along aorta
+    updateLog(handles, 'Aorta points selected');
+    x = pcviprHeader.matrixx - x;
+    % y = pcviprHeader.matrixy - y;
+    % x = imageDim(2) - x;
+    % y = imageDim(1) - y;
+    z = (ones(size(x,1),1)); %add z-coordinates for slice
+    dummy = ones(size(x));
+    points = [x, y, z, dummy]';
+    
+    % flag = 0;
+    % h=[];
+    % shift = [-pcviprHeader.matrixx; pcviprHeader.matrixy; 0;];
+    % shift = [0; 0; 0; 0];
+    
+    % while ~flag
+    %     dlgtitle = 'SMS Point Shift';
+    %     prompt = {'X shift', 'Y shift', 'Z shift', 'Accept final shift (enter 1)'};
+    %     fieldsize = [1 20; 1 20; 1 20; 1 20];
+    %     definput = {num2str(shift(1)), num2str(shift(2)), num2str(shift(3)), num2str(flag)};
+    %     opts = struct('WindowStyle', 'normal');
+    %     answer = inputdlg(prompt, dlgtitle, fieldsize, definput, opts);
+    %     shift = [str2double(answer{1}); str2double(answer{2}); str2double(answer{3}); 0];
+    %     flag = str2num(answer{4});
+    %     delete(h)
+    %     for j=1:size(points,2)
+    %         POINTS(:,j) = rot*points(:,j) + shift;
+    %         % POINTS(2,j) = -POINTS(2,j);
+    %     end 
+    % 
+        % axes(handles.CenterlineDisplay); hold on;
+        % h=scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
+        %     'LineWidth',12,'DisplayName','Rad-2DPC');
+        % legend('Location','southeast');
+    % end
+    % disp(shift)
+    
+    POINTS = zeros(size(points));
+    
+    for j=1:size(points,2)
+        POINTS(:,j) = rot*points(:,j);
+        % POINTS(2,j) = -POINTS(2,j);
+    end
+    axes(handles.CenterlineDisplay); hold on;
+    scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'y*', ...
+        'LineWidth',12,'DisplayName','SMS');
+    if handles.CurrSMS == 1
+        legend('Location','southeast', 'AutoUpdate','off');
+    end
+    
+    points(4,:) = [];
+    POINTS(4,:) = [];
+    handles.sms(smsIter).points = points;
+    handles.sms(smsIter).POINTS = POINTS;
+    handles.CurrSMS = smsIter + 1;
+    guidata(hObject, handles);
 end
-% SMS_gap = 90; %180mm about sz
-if contains(hdf5File,'AAo')
-    sz = sz + SMS_gap;
-else
-    sz = sz - SMS_gap;
-end 
-originShift = [sx; sy; sz; 1];
-% originShift = [0; 0; sz; 1];
-
-xVector = round([ix;iy;iz;0],8); % what direction rows run w/r/to x
-yVector = round([jx;jy;jz;0],8); % what direction the cols run w/r/to y
-zVector = round([kx;ky;kz;0],8); % what direction the cols run w/r/to z
-
-handles.sms(smsIter).RotationMatrix = [xVector yVector zVector originShift];
-% handles.sms(smsIter).RotationMatrix = [[0;0;0;0] [0;0;0;0] [0;0;0;0] [0;0;0;0]];
-
-axes(handles.AnatDisplay); %force axes to anatomical plot
-rot = handles.sms(smsIter).RotationMatrix;
-% disp(rot)
-minc = str2double(get(handles.MinContrastUpdate,'String'));
-maxc = str2double(get(handles.MaxContrastUpdate,'String'));
-
-imshow(handles.sms(smsIter).Images,[minc maxc]);
-[y,x] = getpts(); %draw points on image along aorta
-updateLog(handles, 'Aorta points selected');
-x = pcviprHeader.matrixx - x;
-% y = pcviprHeader.matrixy - y;
-% x = imageDim(2) - x;
-% y = imageDim(1) - y;
-z = (ones(size(x,1),1)); %add z-coordinates for slice
-dummy = ones(size(x));
-points = [x, y, z, dummy]';
-
-% flag = 0;
-% h=[];
-% shift = [-pcviprHeader.matrixx; pcviprHeader.matrixy; 0;];
-% shift = [0; 0; 0; 0];
-
-% while ~flag
-%     dlgtitle = 'SMS Point Shift';
-%     prompt = {'X shift', 'Y shift', 'Z shift', 'Accept final shift (enter 1)'};
-%     fieldsize = [1 20; 1 20; 1 20; 1 20];
-%     definput = {num2str(shift(1)), num2str(shift(2)), num2str(shift(3)), num2str(flag)};
-%     opts = struct('WindowStyle', 'normal');
-%     answer = inputdlg(prompt, dlgtitle, fieldsize, definput, opts);
-%     shift = [str2double(answer{1}); str2double(answer{2}); str2double(answer{3}); 0];
-%     flag = str2num(answer{4});
-%     delete(h)
-%     for j=1:size(points,2)
-%         POINTS(:,j) = rot*points(:,j) + shift;
-%         % POINTS(2,j) = -POINTS(2,j);
-%     end 
-% 
-    % axes(handles.CenterlineDisplay); hold on;
-    % h=scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'r*', ...
-    %     'LineWidth',12,'DisplayName','Rad-2DPC');
-    % legend('Location','southeast');
-% end
-% disp(shift)
-
-for j=1:size(points,2)
-    POINTS(:,j) = rot*points(:,j);
-    % POINTS(2,j) = -POINTS(2,j);
-end
-axes(handles.CenterlineDisplay); hold on;
-scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:),'y*', ...
-    'LineWidth',12,'DisplayName','SMS');
-if handles.CurrSMS == 1
-    legend('Location','southeast', 'AutoUpdate','off');
-end
-
-points(4,:) = [];
-POINTS(4,:) = [];
-handles.sms(smsIter).points = points;
-handles.sms(smsIter).POINTS = POINTS;
-handles.CurrSMS = smsIter + 1;
-guidata(hObject, handles);
 end
 
 
@@ -1344,4 +1392,14 @@ function Logbox_CreateFcn(hObject, eventdata, handles)
     if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
         set(hObject,'BackgroundColor','white');
 end
+end
+
+% --- Executes on button press in Reset.
+function Reset_Callback(hObject, eventdata, handles)
+    % hObject    handle to Reset (see GCBO)
+    % eventdata  reserved - to be defined in a future version of MATLAB
+    % handles    structure with handles and user data (see GUIDATA)
+    
+close(gcf);
+DrawCenterlines()
 end
