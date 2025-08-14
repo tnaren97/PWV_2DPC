@@ -605,7 +605,6 @@ end
 
 % --- Executes on button press in Seg2DCartPush.
 function Seg2DCartPush_Callback(hObject, eventdata, handles)
-for d=1:2
     handles.CurrView = '2DCartesian';
     handles.modality = 'cart';
     cartIter = handles.CurrCartesian;
@@ -688,12 +687,10 @@ for d=1:2
     handles.CurrCartesian = handles.CurrCartesian + 1;
     guidata(hObject, handles);
 end
-end
 
 
 % --- Executes on button press in SegSMSPush.
 function Seg2DRadialPush_Callback(hObject, eventdata, handles)
-for d=1:2
     handles.CurrView = '2DRadial';
     handles.modality = 'rad';
     radIter = handles.CurrRadial;
@@ -797,12 +794,10 @@ for d=1:2
     handles.CurrRadial = radIter + 1;
     guidata(hObject, handles);
 end
-end
 
 
 % --- Executes on button press in SegSMSPush.
 function SegSMSPush_Callback(hObject, eventdata, handles)
-for d=1:2
     handles.CurrView = '2DSMS';
     handles.modality = 'sms';
     smsIter = handles.CurrSMS;
@@ -856,19 +851,34 @@ for d=1:2
     sz = pcviprHeader.sz;
     
     try
-        fid = fopen([hdf5Dir 'sms_fov.txt'], 'r');
-        SMS_fov = fscanf(fid, '%f');
+        fid = fopen([hdf5Dir 'sms_header.txt'], 'r');
+        smsArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
+        'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
         fclose(fid);
-        SMS_gap = SMS_fov/4;
+        smsArray{1,2} = cellfun(@str2num,smsArray{1,2}(:),'UniformOutput',false);
+        sms_info = cell2struct(smsArray{1,2}(:),smsArray{1,1}(:),1); %turn to structure
+        fclose(fid);
+        
+        slice_num = double(hdf5File(end));
+        sms_gap = sms_info.sms_fov / sms_info.sms_factor;
+        offset = (sms_info.sms_factor - 1.0) * sms_gap / 2.0;
+        slice_pos = sms_gap * slice_num - offset;
+        sz = sz + slice_pos;
     catch
-        SMS_gap = 78;
+        disp("WARNGING: No sms_header.txt found so hardcoding values.")
+        sms_gap = 78;
+        % SMS_gap = 312/3;
+        if contains(hdf5File,'AAo')
+            sz = sz + sms_gap;
+        else
+            sz = sz - sms_gap;
+        end 
+
     end
+    
     % SMS_gap = 90; %180mm about sz
-    if contains(hdf5File,'AAo')
-        sz = sz + SMS_gap;
-    else
-        sz = sz - SMS_gap;
-    end 
+    
+    
     originShift = [sx; sy; sz; 1];
     % originShift = [0; 0; sz; 1];
     
@@ -942,7 +952,6 @@ for d=1:2
     handles.sms(smsIter).POINTS = POINTS;
     handles.CurrSMS = smsIter + 1;
     guidata(hObject, handles);
-end
 end
 
 

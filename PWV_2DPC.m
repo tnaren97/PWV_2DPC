@@ -23,7 +23,7 @@ function varargout = PWV_2DPC(varargin)
     % Edit the above text to modify the response to help PWV_2DPC
 
     % Last Modified by GUIDE v2.5 19-Jan-2025 21:07:40
-    % Developed by Grant S Roberts, University of Wisconsin-Madison, 2019
+    % Developed by Grant S Roberts & Tarun Naren, University of Wisconsin-Madison, 2019
     
     
     % Begin initialization code - DO NOT EDIT
@@ -178,17 +178,34 @@ function load2DPCbutton_Callback(hObject, eventdata, handles)
             end
 
         case "SMS"
-            scanInfo = dir("*pwv-radial*SMS");
-            scanPath = fullfile(scanInfo(1).folder, scanInfo(1).name, "SMS_2DPC", "dat");
-            scans = ["AAo_nofov.h5", "AbdAo_nofov.h5"];
-            for z=1:2
-                try
-                    [handles, hObject] = load_sms_h5(handles, hObject, scanPath, scans(z));
-                catch
-                    [scan, scanPath] = uigetfile();
-                    [handles, hObject] = load_sms_h5(handles, hObject, scanPath, scan);
-                end
+            % scanInfo = dir("*pwv-radial*SMS");
+            % scanPath = fullfile(scanInfo(1).folder, scanInfo(1).name, "SMS_2DPC", "dat");
+            % scans = ["AAo_nofov.h5", "AbdAo_nofov.h5"];
+            % for z=1:2
+            %     try
+            %         [handles, hObject] = load_sms_h5(handles, hObject, scanPath, scans(z));
+            %     catch
+            %         [scan, scanPath] = uigetfile();
+            %         [handles, hObject] = load_sms_h5(handles, hObject, scanPath, scan);
+            %     end
+            % end
+            % scanPath = "/Users/naren/Research/PWV/SMS_SMRA/SMS_PWV_Vol_2_03215_2025-03-21/03215_00012_pwv-radial_SMS_3_FB/";
+            % scanPath = uigetdir();
+            % scanPath = "/Users/naren/Research/PWV/SMS_SMRA/SMS_PWV_Vol_2_03215_2025-03-21/03215_00013_pwv-radial_SMS_3_Valsalva/";
+            % scans = ["exp_slice2.h5", "exp_slice1.h5", "exp_slice0.h5"];
+            % scans = ["insp_slice2.h5", "insp_slice1.h5", "insp_slice0.h5"];
+            % scans = ["valsalva_slice2.h5", "valsalva_slice1.h5", "valsalva_slice0.h5"];
+            scanPath = uigetdir();
+            scans = dir(scanPath + "/*.h5");
+            for z = 3:-1:1
+                % try
+                    [handles, hObject] = load_sms_h5(handles, hObject, scanPath, scans(z).name);
+                % catch
+                    % [scan, scanPath] = uigetfile("*.h5");
+                    % [handles, hObject] = load_sms_h5(handles, hObject, scanPath, scan);
+                % end
             end
+
 
         otherwise
             [handles, hObject] = load_mat(handles, hObject);
@@ -574,7 +591,7 @@ function drawROIbutton_Callback(hObject, eventdata, handles)
     for i=1:numel(handles.pcDatasets)
         if isstruct(handles.pcDatasets(i).Raw) %if we've made ROI data for this dataset
             if length(handles.pcDatasets(i).Raw)==1
-                handles.pcDatasets(i).Raw.name = handles.pcDatasets(planeNum).Names; %name ROI
+                handles.pcDatasets(i).Raw.name = handles.pcDatasets(i).Names; %name ROI
             else
                 for j=1:length(handles.pcDatasets(i).Raw)
                     name = handles.pcDatasets(i).Names; %get plane name
