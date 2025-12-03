@@ -196,7 +196,7 @@ function load2DPCbutton_Callback(hObject, eventdata, handles)
             % scans = ["insp_slice2.h5", "insp_slice1.h5", "insp_slice0.h5"];
             % scans = ["valsalva_slice2.h5", "valsalva_slice1.h5", "valsalva_slice0.h5"];
             scanPath = uigetdir();
-            scans = dir(scanPath + "/*.h5");
+            scans = dir(scanPath + "/*slice*.h5");
             for z = 3:-1:1
                 % try
                     [handles, hObject] = load_sms_h5(handles, hObject, scanPath, scans(z).name);
@@ -313,13 +313,31 @@ function load2DPCbutton_Callback(hObject, eventdata, handles)
 
     function [handles, hObject] = load_sms_h5(handles, hObject, pcDir, pcFile)
         pcIter = handles.global.pcIter;
-        fid = fopen(fullfile(pcDir,'pcvipr_header.txt'), 'r'); %open header
-        dataArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
-            'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
-        fclose(fid);
-        dataArray{1,2} = cellfun(@str2num,dataArray{1,2}(:),'UniformOutput',false);
-        pcviprHeader = cell2struct(dataArray{1,2}(:),dataArray{1,1}(:),1); %turn to structure
-        handles.pcDatasets(pcIter).Info = pcviprHeader; %add pcvipr header to handles
+        % fid = fopen(fullfile(pcDir,'pcvipr_header.txt'), 'r'); %open header
+        % dataArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
+        %     'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
+        % fclose(fid);
+        % dataArray{1,2} = cellfun(@str2num,dataArray{1,2}(:),'UniformOutput',false);
+        % pcviprHeader = cell2struct(dataArray{1,2}(:),dataArray{1,1}(:),1); %turn to structure
+        % handles.pcDatasets(pcIter).Info = pcviprHeader; %add pcvipr header to handles
+
+        info_h5 = h5info(fullfile(pcDir, pcFile));
+        Info = {};
+        for i=1:size(info_h5.Groups.Attributes, 1)
+            attribute = info_h5.Groups.Attributes(i).Name;
+            value = info_h5.Groups.Attributes(i).Value;
+            Info.(attribute) = value;
+        end
+        
+        Info.matrixx = double(Info.matrixx);
+        Info.matrixy = double(Info.matrixy);
+        Info.matrixz = double(Info.venc);
+        Info.venc = double(Info.matrixx);
+        Info.frames = double(Info.frames);
+        Info.median_rr = Info.median_rr * 1000;
+        Info.timeres = Info.timeres * 1000;
+        handles.pcDatasets(pcIter).Info = Info;
+
         handles.global.dataType = 'Radial_SMS';
 
         % Initialize data time-resolved data arrays

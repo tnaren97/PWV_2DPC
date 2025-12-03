@@ -22,7 +22,7 @@ function varargout = DrawCenterlines(varargin)
 
 % Edit the above text to modify the response to help DrawCenterlines
 
-% Last Modified by GUIDE v2.5 19-Jan-2025 20:59:10
+% Last Modified by GUIDE v2.5 21-Aug-2025 10:08:44
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -369,6 +369,7 @@ points(4,:) = [];
 POINTS(4,:) = [];
 handles.axial.points = points;
 handles.axial.POINTS = POINTS;
+
 axes(handles.CenterlineDisplay);
 h = scatter3(POINTS(1,:),POINTS(2,:),POINTS(3,:), 32, ...
     'MarkerEdgeColor','k',...
@@ -583,6 +584,7 @@ for j=1:size(points,2)
 end 
 points(4,:) = [];
 POINTS(4,:) = [];
+
 handles.sagittal.points = points;
 handles.sagittal.POINTS = POINTS;
 axes(handles.CenterlineDisplay); hold on;
@@ -851,15 +853,14 @@ function SegSMSPush_Callback(hObject, eventdata, handles)
     sz = pcviprHeader.sz;
     
     try
-        fid = fopen([hdf5Dir 'sms_header.txt'], 'r');
+        fid = fopen(fullfile(hdf5Dir, 'sms_header.txt'), 'r');
         smsArray = textscan(fid,'%s%s%[^\n\r]','Delimiter',' ', ...
-        'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
+            'MultipleDelimsAsOne',true,'ReturnOnError',false); %parse header info
         fclose(fid);
         smsArray{1,2} = cellfun(@str2num,smsArray{1,2}(:),'UniformOutput',false);
         sms_info = cell2struct(smsArray{1,2}(:),smsArray{1,1}(:),1); %turn to structure
-        fclose(fid);
         
-        slice_num = double(hdf5File(end));
+        slice_num = str2double(hdf5File(end-3));
         sms_gap = sms_info.sms_fov / sms_info.sms_factor;
         offset = (sms_info.sms_factor - 1.0) * sms_gap / 2.0;
         slice_pos = sms_gap * slice_num - offset;
@@ -1412,3 +1413,7 @@ function Reset_Callback(hObject, eventdata, handles)
 close(gcf);
 DrawCenterlines()
 end
+
+
+
+
